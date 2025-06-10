@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Science Bowl Reader</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: auto; padding: 2rem; }
+    button { margin: 1rem 0; padding: 0.5rem 1rem; font-size: 1rem; }
+    #question-box { white-space: pre-wrap; background: #f0f0f0; padding: 1rem; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<h2>Science Bowl Question Reader</h2>
+
+<div id="question-box">Press "Start" to begin.</div>
+
+<button id="start-btn">Start</button>
+<button id="next-btn" disabled>Next</button>
+
+<script>
+const questions = [
+  {
+    question: `EARTH AND SPACE, TOSS UP
+Multiple Choice Which of the following silicate classes best describes quartz?
+W) Nesosilicate (Ness-o-silicate)
+X) Cyclosilicate
+Y) Inosilicate (Eye-no-silicate)
+Z) Tectosilicate (tech-to-silicate)`,
+    answer: `The answer is Z) Tectosilicate (tech-to-silicate)`
+  },
+  {
+    question: `BIOLOGY, TOSS UP
+Multiple Choice Which organelle is known as the powerhouse of the cell?
+W) Nucleus
+X) Ribosome
+Y) Mitochondrion
+Z) Golgi apparatus`,
+    answer: `The answer is Y) Mitochondrion`
+  }
+];
+
+let current = 0;
+let phase = "question"; // or "answer"
+
+const box = document.getElementById("question-box");
+const startBtn = document.getElementById("start-btn");
+const nextBtn = document.getElementById("next-btn");
+
+function speak(text) {
+  const msg = new SpeechSynthesisUtterance(text);
+  window.speechSynthesis.cancel(); // stop previous speech
+  window.speechSynthesis.speak(msg);
+}
+
+function showQuestion() {
+  const q = questions[current];
+  box.textContent = q.question;
+  speak(q.question);
+  phase = "answer";
+}
+
+function showAnswer() {
+  const a = questions[current].answer;
+  box.textContent += "\n\n" + a;
+  speak(a);
+  phase = "next";
+  nextBtn.disabled = false;
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= questions.length) {
+    box.textContent = "End of questions.";
+    speak("End of questions.");
+    startBtn.disabled = true;
+    nextBtn.disabled = true;
+  } else {
+    showQuestion();
+    nextBtn.disabled = true;
+  }
+}
+
+startBtn.onclick = () => {
+  current = 0;
+  showQuestion();
+  startBtn.disabled = true;
+};
+
+nextBtn.onclick = () => {
+  nextQuestion();
+};
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (phase === "answer") {
+      showAnswer();
+    } else if (phase === "next") {
+      nextQuestion();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
