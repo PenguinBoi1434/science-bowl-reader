@@ -1,107 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Science Bowl Reader</title>
+  <meta charset="UTF-8">
+  <title>Science Bowl PDF Reader</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: auto; padding: 2rem; }
-    button { margin: 1rem 0; padding: 0.5rem 1rem; font-size: 1rem; }
-    #question-box { white-space: pre-wrap; background: #f0f0f0; padding: 1rem; border-radius: 8px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    #controls {
+      margin-bottom: 1rem;
+    }
+    button, input[type="file"] {
+      margin-right: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    #question-box {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+      min-height: 150px;
+    }
   </style>
 </head>
 <body>
 
-<h2>Science Bowl Question Reader</h2>
+  <h2>Science Bowl PDF Reader</h2>
 
-<div id="question-box">Press "Start" to begin.</div>
+  <div id="controls">
+    <input type="file" id="pdf-upload" accept=".pdf" />
+    <button id="start-btn" disabled>Start</button>
+    <button id="next-btn" disabled>Next</button>
+  </div>
 
-<button id="start-btn">Start</button>
-<button id="next-btn" disabled>Next</button>
+  <div id="question-box">Upload a PDF to begin.</div>
 
-<script>
-const questions = [
-  {
-    question: `EARTH AND SPACE, TOSS UP
-Multiple Choice Which of the following silicate classes best describes quartz?
-W) Nesosilicate (Ness-o-silicate)
-X) Cyclosilicate
-Y) Inosilicate (Eye-no-silicate)
-Z) Tectosilicate (tech-to-silicate)`,
-    answer: `The answer is Z) Tectosilicate (tech-to-silicate)`
-  },
-  {
-    question: `BIOLOGY, TOSS UP
-Multiple Choice Which organelle is known as the powerhouse of the cell?
-W) Nucleus
-X) Ribosome
-Y) Mitochondrion
-Z) Golgi apparatus`,
-    answer: `The answer is Y) Mitochondrion`
-  }
-];
+  <script>
+    let questions = [];
+    let index = 0;
 
-let current = 0;
-let phase = "question"; // or "answer"
+    const box = document.getElementById("question-box");
+    const startBtn = document.getElementById("start-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const upload = document.getElementById("pdf-upload");
 
-const box = document.getElementById("question-box");
-const startBtn = document.getElementById("start-btn");
-const nextBtn = document.getElementById("next-btn");
-
-function speak(text) {
-  const msg = new SpeechSynthesisUtterance(text);
-  window.speechSynthesis.cancel(); // stop previous speech
-  window.speechSynthesis.speak(msg);
-}
-
-function showQuestion() {
-  const q = questions[current];
-  box.textContent = q.question;
-  speak(q.question);
-  phase = "answer";
-}
-
-function showAnswer() {
-  const a = questions[current].answer;
-  box.textContent += "\n\n" + a;
-  speak(a);
-  phase = "next";
-  nextBtn.disabled = false;
-}
-
-function nextQuestion() {
-  current++;
-  if (current >= questions.length) {
-    box.textContent = "End of questions.";
-    speak("End of questions.");
-    startBtn.disabled = true;
-    nextBtn.disabled = true;
-  } else {
-    showQuestion();
-    nextBtn.disabled = true;
-  }
-}
-
-startBtn.onclick = () => {
-  current = 0;
-  showQuestion();
-  startBtn.disabled = true;
-};
-
-nextBtn.onclick = () => {
-  nextQuestion();
-};
-
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") {
-    e.preventDefault();
-    if (phase === "answer") {
-      showAnswer();
-    } else if (phase === "next") {
-      nextQuestion();
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(msg);
     }
-  }
-});
-</script>
+
+    function showQuestion() {
+      const q = questions[index];
+      if (!q) {
+        box.textContent = "No more questions.";
+        speak("End of questions.");
+        nextBtn.disabled = true;
+        return;
+      }
+      box.textContent = q;
+      speak(q);
+      index++;
+    }
+
+    startBtn.onclick = () => {
+      index = 0;
+      showQuestion();
+      nextBtn.disabled = false;
+      startBtn.disabled = true;
+    };
+
+    nextBtn.onclick = showQuestion;
+
+    upload.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      let rawText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const strings = content.items.map(item => item.str);
+        rawText += strings.join(" ") + "\n";
+      }
+
+      // Smart split based on "TOSS UP" or "BONUS"
+      questions = rawText.split(/(?=TOSS\s+UP|BONUS)/i)
+        .map(q => q.trim())
+        .filter(q => q.length > 20); // skip junk
+
+      if (questions.length === 0) {
+        box.textContent = "No questions found in the PDF.";
+      } else {
+        box.textContent = `Loaded ${questions.length} questions. Press Start.`;
+        startBtn.disabled = false;
+      }
+    });
+  </script>
 
 </body>
 </html>
