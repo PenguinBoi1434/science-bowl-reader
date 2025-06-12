@@ -127,17 +127,23 @@
       .map(q => q.trim())
       .filter(q => q.length > 20);
 
- qnaPairs = rawItems.map(item => {
-  // Extract the answer and remove it from the question
+qnaPairs = rawItems.map(item => {
+  // Extract the final "ANSWER: ..." part as the answer
   const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?:\n|$)/i);
   let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
 
-  // Remove the answer from the text
-  let cleaned = item.replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i, '');
-  cleaned = cleaned.replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/i, '');
+  // Remove all lines starting with "ANSWER:" or "The answer is:"
+  let cleaned = item
+    .replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/gi, '')
+    .replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/gi, '');
+
+  // Also remove leading "Answer:" (when it's mistakenly included in the question line)
+  cleaned = cleaned.replace(/^Answer:\s*/i, '');
+
+  // Remove any trailing page or metadata lines
   cleaned = cleaned.replace(/MIT Science Bowl.*$/i, '').trim();
 
-  // Format choices to be on new lines
+  // Add line breaks before MC choices if present
   cleaned = cleaned.replace(/\s(W\))/g, '\n$1');
   cleaned = cleaned.replace(/\s(X\))/g, '\n$1');
   cleaned = cleaned.replace(/\s(Y\))/g, '\n$1');
