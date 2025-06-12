@@ -107,48 +107,56 @@
     });
 
     upload.addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-        let rawText = "";
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          const strings = content.items.map(item => item.str);
-          rawText += strings.join(" ") + "\n";
-        }
+    let rawText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const strings = content.items.map(item => item.str);
+      rawText += strings.join(" ") + "\n";
+    }
 
-        const rawItems = rawText.split(/(?=TOSS\s+UP|BONUS)/i)
-          .map(q => q.trim())
-          .filter(q => q.length > 20);
+    // Split into Q&A blocks
+    const rawItems = rawText.split(/(?=TOSS\s+UP|BONUS)/i)
+      .map(q => q.trim())
+      .filter(q => q.length > 20);
 
-        qnaPairs = rawItems.map(item => {
-          const parts = item.split(/(W\).+|X\).+|Y\).+|Z\).+)/);
-          const [pre, choices] = parts.length >= 3 ? [parts[0], parts[1]] : [item, ""];
-          const question = (pre + choices).trim();
+    qnaPairs = rawItems.map(item => {
+      // Extract answer first, then clean from question
+      const answerMatch = item.match(/ANSWER[:\s\-]+([^\n]+)/i) || item.match(/The answer is[:\s\-]+([^\n]+)/i);
+      let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+      answer = answer.replace(/MIT Science Bowl.*$/i, '').trim();
 
-          const answerMatch = item.match(/Answer[:\s\-]+([^\n]+)/i) || item.match(/The answer is[:\s\-]+([^\n]+)/i);
-          let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
-          answer = answer.replace(/MIT Science Bowl.*$/i, '').trim();
+      // Remove everything from "ANSWER:" onward from question text
+      let questionOnly = item.replace(/ANSWER[:\s\-]+[^\n]+/i, '');
+      questionOnly = questionOnly.replace(/MIT Science Bowl.*$/i, '').trim();
 
-          return { question, answer };
-        });
+      // Add line breaks before W), X), Y), Z)
+      questionOnly = questionOnly.replace(/\b(W|X|Y|Z)\)/g, '\n$1)');
 
-        if (qnaPairs.length === 0) {
-          box.textContent = "Could not extract questions from PDF.";
-        } else {
-          box.textContent = `Loaded ${qnaPairs.length} questions. Press Start.`;
-          startBtn.disabled = false;
-        }
-      } catch (err) {
-        console.error("PDF read error:", err);
-        box.textContent = "Failed to read PDF. Make sure it's a valid Science Bowl file.";
-      }
+      return {
+        question: questionOnly,
+        answer: answer
+      };
     });
+
+    if (qnaPairs.length === 0) {
+      box.textContent = "Could not extract questions from PDF.";
+    } else {
+      box.textContent = `Loaded ${qnaPairs.length} questions. Press Start.`;
+      startBtn.disabled = false;
+    }
+  } catch (err) {
+    console.error("PDF read error:", err);
+    box.textContent = "Failed to read PDF. Make sure it's a valid Science Bowl file.";
+  }
+});
   </script>
 </body>
 </html>
