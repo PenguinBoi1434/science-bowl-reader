@@ -127,24 +127,27 @@
       .map(q => q.trim())
       .filter(q => q.length > 20);
 
-    qnaPairs = rawItems.map(item => {
-      // Extract answer first, then clean from question
-      const answerMatch = item.match(/ANSWER[:\s\-]+([^\n]+)/i) || item.match(/The answer is[:\s\-]+([^\n]+)/i);
-      let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
-      answer = answer.replace(/MIT Science Bowl.*$/i, '').trim();
+ qnaPairs = rawItems.map(item => {
+  // Extract the answer and remove it from the question
+  const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?:\n|$)/i);
+  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
 
-      // Remove everything from "ANSWER:" onward from question text
-      let questionOnly = item.replace(/ANSWER[:\s\-]+[^\n]+/i, '');
-      questionOnly = questionOnly.replace(/MIT Science Bowl.*$/i, '').trim();
+  // Remove the answer from the text
+  let cleaned = item.replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i, '');
+  cleaned = cleaned.replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/i, '');
+  cleaned = cleaned.replace(/MIT Science Bowl.*$/i, '').trim();
 
-      // Add line breaks before W), X), Y), Z)
-      questionOnly = questionOnly.replace(/\b(W|X|Y|Z)\)/g, '\n$1)');
+  // Format choices to be on new lines
+  cleaned = cleaned.replace(/\s(W\))/g, '\n$1');
+  cleaned = cleaned.replace(/\s(X\))/g, '\n$1');
+  cleaned = cleaned.replace(/\s(Y\))/g, '\n$1');
+  cleaned = cleaned.replace(/\s(Z\))/g, '\n$1');
 
-      return {
-        question: questionOnly,
-        answer: answer
-      };
-    });
+  return {
+    question: cleaned.trim(),
+    answer: answer.trim()
+  };
+});
 
     if (qnaPairs.length === 0) {
       box.textContent = "Could not extract questions from PDF.";
