@@ -42,108 +42,113 @@
 
   <div id="question-box">Upload a PDF to begin.</div>
 
- <script>
-  let qnaPairs = [];
-  let currentIndex = 0;
-  let phase = "question"; // 'question' or 'answer'
+  <script>
+    // Set worker source for PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-  const box = document.getElementById("question-box");
-  const startBtn = document.getElementById("start-btn");
-  const nextBtn = document.getElementById("next-btn");
-  const upload = document.getElementById("pdf-upload");
+    let qnaPairs = [];
+    let currentIndex = 0;
+    let phase = "question";
 
-  function speak(text) {
-    const msg = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(msg);
-  }
+    const box = document.getElementById("question-box");
+    const startBtn = document.getElementById("start-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const upload = document.getElementById("pdf-upload");
 
-  function showCurrent() {
-    if (currentIndex >= qnaPairs.length) {
-      box.textContent = "End of questions.";
-      speak("End of questions.");
-      nextBtn.disabled = true;
-      return;
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(msg);
     }
 
-    const item = qnaPairs[currentIndex];
-    if (phase === "question") {
-      box.textContent = item.question;
-      speak(item.question);
-    } else if (phase === "answer") {
-      box.textContent += "\n\nAnswer: " + item.answer;
-      speak("The answer is: " + item.answer);
-    }
-  }
+    function showCurrent() {
+      if (currentIndex >= qnaPairs.length) {
+        box.textContent = "End of questions.";
+        speak("End of questions.");
+        nextBtn.disabled = true;
+        return;
+      }
 
-  function advance() {
-    if (phase === "question") {
-      phase = "answer";
-    } else {
+      const item = qnaPairs[currentIndex];
+      if (phase === "question") {
+        box.textContent = item.question;
+        speak(item.question);
+      } else if (phase === "answer") {
+        box.textContent += "\n\nAnswer: " + item.answer;
+        speak("The answer is: " + item.answer);
+      }
+    }
+
+    function advance() {
+      if (phase === "question") {
+        phase = "answer";
+      } else {
+        phase = "question";
+        currentIndex++;
+      }
+      showCurrent();
+    }
+
+    startBtn.onclick = () => {
+      currentIndex = 0;
       phase = "question";
-      currentIndex++;
-    }
-    showCurrent();
-  }
+      showCurrent();
+      nextBtn.disabled = false;
+      startBtn.disabled = true;
+    };
 
-  startBtn.onclick = () => {
-    currentIndex = 0;
-    phase = "question";
-    showCurrent();
-    nextBtn.disabled = false;
-    startBtn.disabled = true;
-  };
+    nextBtn.onclick = advance;
 
-  nextBtn.onclick = advance;
-
-  document.addEventListener("keydown", (e) => {
-    if (e.code === "Space") {
-      e.preventDefault();
-      advance();
-    }
-  });
-
-  upload.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-    let rawText = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const strings = content.items.map(item => item.str);
-      rawText += strings.join(" ") + "\n";
-    }
-
-    // ✂️ Smart parse Q&A pairs
-    const rawItems = rawText.split(/(?=TOSS\s+UP|BONUS)/i)
-      .map(q => q.trim())
-      .filter(q => q.length > 20);
-
-    // 🧠 Split question and answer heuristically
-    qnaPairs = rawItems.map(item => {
-      const parts = item.split(/(W\).+|X\).+|Y\).+|Z\).+)/);
-      const [pre, choices] = parts.length >= 3 ? [parts[0], parts[1]] : [item, ""];
-      const question = (pre + choices).trim();
-
-      // Try to guess the answer line (looks for "Answer: ..." or "The answer is ...")
-    const answerMatch = item.match(/Answer[:\s\-]+([^\n]+)/i) || item.match(/The answer is[:\s\-]+([^\n]+)/i);
-    let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
-    answer = answer.replace(/MIT Science Bowl.*$/i, '').trim();      
-
-      return { question, answer };
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        advance();
+      }
     });
 
-    if (qnaPairs.length === 0) {
-      box.textContent = "Could not extract questions from PDF.";
-    } else {
-      box.textContent = `Loaded ${qnaPairs.length} questions. Press Start.`;
-      startBtn.disabled = false;
-    }
-  });
-</script>
+    upload.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let rawText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          rawText += strings.join(" ") + "\n";
+        }
+
+        const rawItems = rawText.split(/(?=TOSS\s+UP|BONUS)/i)
+          .map(q => q.trim())
+          .filter(q => q.length > 20);
+
+        qnaPairs = rawItems.map(item => {
+          const parts = item.split(/(W\).+|X\).+|Y\).+|Z\).+)/);
+          const [pre, choices] = parts.length >= 3 ? [parts[0], parts[1]] : [item, ""];
+          const question = (pre + choices).trim();
+
+          const answerMatch = item.match(/Answer[:\s\-]+([^\n]+)/i) || item.match(/The answer is[:\s\-]+([^\n]+)/i);
+          let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+          answer = answer.replace(/MIT Science Bowl.*$/i, '').trim();
+
+          return { question, answer };
+        });
+
+        if (qnaPairs.length === 0) {
+          box.textContent = "Could not extract questions from PDF.";
+        } else {
+          box.textContent = `Loaded ${qnaPairs.length} questions. Press Start.`;
+          startBtn.disabled = false;
+        }
+      } catch (err) {
+        console.error("PDF read error:", err);
+        box.textContent = "Failed to read PDF. Make sure it's a valid Science Bowl file.";
+      }
+    });
+  </script>
 </body>
 </html>
