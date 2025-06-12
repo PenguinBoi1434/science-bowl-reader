@@ -133,7 +133,6 @@
     const answerMatch = item.match(/Answer[:\s\-]+([^\n]+)/i) || item.match(/The answer is[:\s\-]+([^\n]+)/i);
     let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
     answer = answer.replace(/MIT Science Bowl.*$/i, '').trim();      
-      const answer = answerMatch ? answerMatch[1].trim() : "Unknown";
 
       return { question, answer };
     });
