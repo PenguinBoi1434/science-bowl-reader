@@ -84,6 +84,7 @@
     const feedback = document.getElementById("feedback");
     const progress = document.getElementById("progress");
 
+    // Process uploaded PDF
     upload.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -93,102 +94,58 @@
         feedback.textContent = "";
         startBtn.disabled = true;
         
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+        let fullText = "";
 
-        let rawText = "";
+        // Extract text from all pages
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          const strings = content.items.map(item => item.str);
-          rawText += strings.join(" ") + "\n";
+          fullText += content.items.map(item => item.str).join(" ") + "\n";
         }
 
-        // Improved question parsing
-        // Replace your current parsing logic with this:
-const rawItems = rawText
-  .replace(/\n/g, " ") // Replace newlines with spaces
-  .replace(/\s+/g, " ") // Collapse multiple spaces
-  .split(/(\d+\)\s*(?:MATH|PHYSICS).*?(?=ANSWER|$)/i) // Split at question starts
-  .filter(item => item.trim().length > 0 && !item.match(/^ANSWER/i));
+        // Parse questions and answers
+        qnaPairs = [];
+        const questionBlocks = fullText.split(/(?=\d+\)\s*(?:MATH|PHYSICS)\s+(?:Short Answer|Multiple Choice)\s+)/i);
 
-qnaPairs = rawItems.map(item => {
-  // Extract answer (supports "ANSWER:" or "The answer is:")
-  const answerMatch = item.match(/(?:ANSWER|The answer is)[:\s\-]+\s*([^\n]+)/i);
-  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+        questionBlocks.forEach(block => {
+          if (!block.trim() || block.includes("ANSWER")) return;
 
-  // Remove ANSWER part but keep the rest of the question intact
-  let question = item.replace(/(?:ANSWER|The answer is)[:\s\-]+\s*([^\n]+)/gi, '').trim();
+          // Extract question number and type
+          const headerMatch = block.match(/^(\d+\)\s*(.*?))\s*(?=ANSWER|$)/i);
+          if (!headerMatch) return;
 
-  return { 
-    question: question,
-    answer: answer 
-  };
-});
+          const header = headerMatch[1];
+          let questionText = block.slice(headerMatch[0].length).trim();
 
-     // Inside PDF processing:
-qnaPairs = rawItems.map(item => {
-  // Extract answer (supports "ANSWER: X) ..." or "The answer is: Y) ...")
-  const answerMatch = item.match(/(?:ANSWER|The answer is)[:\s\-]+([^\.]+(?:\.|$))/i);
-  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+          // Extract answer
+          const answerMatch = questionText.match(/(?:ANSWER|The answer is)[:\-\s]+([^\n]+)/i);
+          if (!answerMatch) return;
 
-  // Clean question text (keep options if multiple-choice)
-  let cleaned = item.replace(/(?:ANSWER|The answer is)[:\s\-]+([^\.]+(?:\.|$))/gi, '')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+          const answer = answerMatch[1].trim();
+          questionText = questionText.slice(0, answerMatch.index).trim();
 
-  // Check if it's multiple-choice (W), X), Y), Z))
-  const options = cleaned.match(/[WXYZ]\)\s.+?(?=\s[WXYZ]\)|$)/gi);
-  
-  return { 
-    question: cleaned, 
-    answer: answer,
-    options: options || null // Store options if available
-  };
-});
+          // Store question and answer
+          qnaPairs.push({
+            question: `${header}\n${questionText}`.replace(/\s+/g, " "),
+            answer: answer
+          });
+        });
 
-// In checkAnswer():
-function checkAnswer() {
-  const userAns = normalizeAnswer(input.value.trim());
-  const correctAns = normalizeAnswer(qnaPairs[currentIndex].answer);
-
-  // Allow "X" or "X) ..." to match
-  const isCorrect = userAns === correctAns || 
-                    userAns.startsWith(correctAns.charAt(0)) || // "x" matches "x) ..."
-                    correctAns.startsWith(userAns.charAt(0));
-
-  if (isCorrect) {
-    feedback.textContent = "✅ Correct!";
-    feedback.className = "correct";
-  } else {
-    feedback.textContent = `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
-    feedback.className = "incorrect";
-  }
-  nextBtn.disabled = false;
-}
-
-
-        if (qnaPairs.length === 0) {
-          box.textContent = "No math or physics questions found in the PDF.";
-          feedback.textContent = "Please try a different Science Bowl file.";
-        } else {
-          box.textContent = `Successfully loaded ${qnaPairs.length} math/physics questions. Press "Start Quiz" to begin.`;
+        if (qnaPairs.length > 0) {
+          box.textContent = `Loaded ${qnaPairs.length} questions. Press "Start Quiz".`;
           startBtn.disabled = false;
-          nextBtn.disabled = true;
-          input.disabled = true;
-          updateProgress();
+        } else {
+          box.textContent = "No valid questions found. Check PDF format.";
         }
+
       } catch (err) {
-        console.error("PDF processing error:", err);
-        box.textContent = "Error processing PDF. Please ensure it's a valid Science Bowl file.";
-        feedback.textContent = err.message;
+        box.textContent = `Error: ${err.message}`;
+        console.error(err);
       }
     });
 
-    function updateProgress() {
-      progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
-    }
-
+    // Start the quiz
     startBtn.onclick = () => {
       currentIndex = 0;
       answered = false;
@@ -201,6 +158,7 @@ function checkAnswer() {
       input.focus();
     };
 
+    // Move to next question
     nextBtn.onclick = () => {
       currentIndex++;
       if (currentIndex >= qnaPairs.length) {
@@ -219,25 +177,38 @@ function checkAnswer() {
       input.focus();
     };
 
+    // Display current question
+    function showQuestion() {
+      const q = qnaPairs[currentIndex];
+      box.textContent = q.question;
+      progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
+    }
+
+    // Handle answer submission
     input.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && !answered && input.value.trim()) {
         checkAnswer();
       }
     });
 
-    function showQuestion() {
-      box.textContent = qnaPairs[currentIndex].question;
-      updateProgress();
-    }
-
+    // Check user's answer
     function checkAnswer() {
-      const userAns = normalizeAnswer(input.value.trim());
-      const correctAns = normalizeAnswer(qnaPairs[currentIndex].answer);
-      
+      const userAns = input.value.trim().toLowerCase();
+      const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
+
+      // Normalize answers for comparison
+      const normalize = (str) => str.replace(/[^a-z0-9]/g, "");
+
+      // Flexible matching for multiple-choice and numbers
+      const isCorrect = 
+        userAns === correctAns ||
+        normalize(userAns) === normalize(correctAns) ||
+        (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2;
+
       answered = true;
       input.disabled = true;
       
-      if (userAns === correctAns) {
+      if (isCorrect) {
         feedback.textContent = "✅ Correct!";
         feedback.className = "correct";
       } else {
@@ -247,14 +218,6 @@ function checkAnswer() {
       nextBtn.disabled = false;
       nextBtn.focus();
     }
-    
-    function normalizeAnswer(answer) {
-      return answer.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '') // Remove special chars
-        .replace(/\s+/g, ' ')        // Normalize whitespace
-        .trim();
-    }
   </script>
-
 </body>
 </html>
