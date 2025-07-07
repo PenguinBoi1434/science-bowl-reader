@@ -127,34 +127,31 @@
       .map(q => q.trim())
       .filter(q => q.length > 20);
 
-qnaPairs = rawItems.map(item => {
-  // Extract the final "ANSWER: ..." part as the answer
-  const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?:\n|$)/i);
-  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+qnaPairs = rawItems
+  .map(item => {
+    const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?:\n|$)/i);
+    let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
 
-  // Remove all lines starting with "ANSWER:" or "The answer is:"
-  let cleaned = item
-    .replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/gi, '')
-    .replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/gi, '');
+    let cleaned = item
+      .replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/gi, '')
+      .replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/gi, '')
+      .replace(/^Answer:\s*/i, '')
+      .replace(/MIT Science Bowl.*$/i, '')
+      .trim();
 
-  // Also remove leading "Answer:" (when it's mistakenly included in the question line)
-  cleaned = cleaned.replace(/^Answer:\s*/i, '');
+    cleaned = cleaned.replace(/\s(W\))/g, '\n$1');
+    cleaned = cleaned.replace(/\s(X\))/g, '\n$1');
+    cleaned = cleaned.replace(/\s(Y\))/g, '\n$1');
+    cleaned = cleaned.replace(/\s(Z\))/g, '\n$1');
 
-  // Remove any trailing page or metadata lines
-  cleaned = cleaned.replace(/MIT Science Bowl.*$/i, '').trim();
-
-  // Add line breaks before MC choices if present
-  cleaned = cleaned.replace(/\s(W\))/g, '\n$1');
-  cleaned = cleaned.replace(/\s(X\))/g, '\n$1');
-  cleaned = cleaned.replace(/\s(Y\))/g, '\n$1');
-  cleaned = cleaned.replace(/\s(Z\))/g, '\n$1');
-
-  return {
-    question: cleaned.trim(),
-    answer: answer.trim()
-  };
-});
-
+    return {
+      subject: cleaned.slice(0, 10).toUpperCase(), // grab the first few chars for filtering
+      question: cleaned,
+      answer: answer
+    };
+  })
+  .filter(item => item.subject.includes("PHYSICS") || item.subject.includes("MATH"))
+  .map(item => ({ question: item.question, answer: item.answer }));
     if (qnaPairs.length === 0) {
       box.textContent = "Could not extract questions from PDF.";
     } else {
