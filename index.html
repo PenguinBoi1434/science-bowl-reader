@@ -69,155 +69,130 @@
   <input type="text" id="answer-input" placeholder="Type your answer here" disabled />
   <div id="feedback"></div>
 
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    let qnaPairs = [];
-    let currentIndex = 0;
-    let answered = false;
+  let qnaPairs = [];
+  let currentIndex = 0;
 
-    const box = document.getElementById("question-box");
-    const startBtn = document.getElementById("start-btn");
-    const nextBtn = document.getElementById("next-btn");
-    const upload = document.getElementById("pdf-upload");
-    const input = document.getElementById("answer-input");
-    const feedback = document.getElementById("feedback");
-    const progress = document.getElementById("progress");
+  // DOM elements
+  const box = document.getElementById("question-box");
+  const startBtn = document.getElementById("start-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const upload = document.getElementById("pdf-upload");
+  const input = document.getElementById("answer-input");
+  const feedback = document.getElementById("feedback");
+  const progress = document.getElementById("progress");
 
-    // Process uploaded PDF
-    upload.addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  // MIT Packet Specific Parser
+  upload.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      try {
-        box.textContent = "Processing PDF...";
-        feedback.textContent = "";
-        startBtn.disabled = true;
-        
-        const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
-        let fullText = "";
-
-        // Extract text from all pages
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          fullText += content.items.map(item => item.str).join(" ") + "\n";
-        }
-
-        // Parse questions and answers
-        qnaPairs = [];
-        const questionBlocks = fullText.split(/(?=\d+\)\s*(?:MATH|PHYSICS)\s+(?:Short Answer|Multiple Choice)\s+)/i);
-
-        questionBlocks.forEach(block => {
-          if (!block.trim() || block.includes("ANSWER")) return;
-
-          // Extract question number and type
-          const headerMatch = block.match(/^(\d+\)\s*(.*?))\s*(?=ANSWER|$)/i);
-          if (!headerMatch) return;
-
-          const header = headerMatch[1];
-          let questionText = block.slice(headerMatch[0].length).trim();
-
-          // Extract answer
-          const answerMatch = questionText.match(/(?:ANSWER|The answer is)[:\-\s]+([^\n]+)/i);
-          if (!answerMatch) return;
-
-          const answer = answerMatch[1].trim();
-          questionText = questionText.slice(0, answerMatch.index).trim();
-
-          // Store question and answer
-          qnaPairs.push({
-            question: `${header}\n${questionText}`.replace(/\s+/g, " "),
-            answer: answer
-          });
-        });
-
-        if (qnaPairs.length > 0) {
-          box.textContent = `Loaded ${qnaPairs.length} questions. Press "Start Quiz".`;
-          startBtn.disabled = false;
-        } else {
-          box.textContent = "No valid questions found. Check PDF format.";
-        }
-
-      } catch (err) {
-        box.textContent = `Error: ${err.message}`;
-        console.error(err);
-      }
-    });
-
-    // Start the quiz
-    startBtn.onclick = () => {
-      currentIndex = 0;
-      answered = false;
-      input.disabled = false;
-      input.value = "";
-      feedback.textContent = "";
+    try {
+      box.textContent = "Processing MIT Packet...";
       startBtn.disabled = true;
-      nextBtn.disabled = true;
-      showQuestion();
-      input.focus();
-    };
-
-    // Move to next question
-    nextBtn.onclick = () => {
-      currentIndex++;
-      if (currentIndex >= qnaPairs.length) {
-        box.textContent = "Quiz complete! You've answered all questions.";
-        input.disabled = true;
-        nextBtn.disabled = true;
-        progress.textContent = `Completed ${qnaPairs.length} questions`;
-        return;
-      }
-      answered = false;
-      input.value = "";
-      feedback.textContent = "";
-      input.disabled = false;
-      nextBtn.disabled = true;
-      showQuestion();
-      input.focus();
-    };
-
-    // Display current question
-    function showQuestion() {
-      const q = qnaPairs[currentIndex];
-      box.textContent = q.question;
-      progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
-    }
-
-    // Handle answer submission
-    input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !answered && input.value.trim()) {
-        checkAnswer();
-      }
-    });
-
-    // Check user's answer
-    function checkAnswer() {
-      const userAns = input.value.trim().toLowerCase();
-      const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
-
-      // Normalize answers for comparison
-      const normalize = (str) => str.replace(/[^a-z0-9]/g, "");
-
-      // Flexible matching for multiple-choice and numbers
-      const isCorrect = 
-        userAns === correctAns ||
-        normalize(userAns) === normalize(correctAns) ||
-        (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2;
-
-      answered = true;
-      input.disabled = true;
       
-      if (isCorrect) {
-        feedback.textContent = "✅ Correct!";
-        feedback.className = "correct";
-      } else {
-        feedback.textContent = `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
-        feedback.className = "incorrect";
+      const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+      let fullText = "";
+
+      // MIT packets often have 2-column layout - we need special handling
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent({
+          normalizeWhitespace: true,
+          disableCombineTextItems: false
+        });
+        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
       }
-      nextBtn.disabled = false;
-      nextBtn.focus();
+
+      // MIT-specific question parsing
+      const questionRegex = /(\d+)\)\s*(TOSS-UP|BONUS)\s*(MATH|PHYSICS).*?(?=ANSWER|$)/gis;
+      const answerRegex = /ANSWER:\s*(.*?)(?=\d+\)|$)/gis;
+      
+      let questions = [];
+      let qMatch;
+      while ((qMatch = questionRegex.exec(fullText)) !== null) {
+        questions.push({
+          index: qMatch.index,
+          text: qMatch[0].trim()
+        });
+      }
+
+      let aMatch;
+      while ((aMatch = answerRegex.exec(fullText)) !== null) {
+        const answer = aMatch[1].trim();
+        // Find the question preceding this answer
+        const question = questions.reverse().find(q => q.index < aMatch.index);
+        if (question) {
+          qnaPairs.push({
+            question: question.text.replace(/\s+/g, ' '),
+            answer: answer.replace(/\s+/g, ' ')
+          });
+        }
+      }
+
+      if (qnaPairs.length > 0) {
+        box.textContent = `Loaded ${qnaPairs.length} MIT questions. Press Start.`;
+        startBtn.disabled = false;
+      } else {
+        box.textContent = "No questions found. Ensure you're using an MIT packet PDF.";
+      }
+
+    } catch (err) {
+      box.textContent = "Failed to process MIT packet. Open console (F12) for details.";
+      console.error("MIT Packet Error:", err);
     }
-  </script>
+  });
+
+  // Quiz controls (keep existing)
+  startBtn.onclick = () => {
+    currentIndex = 0;
+    showQuestion();
+    input.disabled = false;
+    startBtn.disabled = true;
+  };
+
+  nextBtn.onclick = () => {
+    if (++currentIndex >= qnaPairs.length) {
+      box.textContent = "MIT packet quiz complete!";
+      nextBtn.disabled = true;
+      return;
+    }
+    input.value = "";
+    feedback.textContent = "";
+    showQuestion();
+  };
+
+  function showQuestion() {
+    const q = qnaPairs[currentIndex];
+    box.textContent = q.question;
+    progress.textContent = `MIT Question ${currentIndex + 1}/${qnaPairs.length}`;
+    input.focus();
+  }
+
+  // Enhanced answer checking for MIT format
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") checkAnswer();
+  });
+
+  function checkAnswer() {
+    const userAns = input.value.trim().toLowerCase();
+    const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
+
+    // MIT-specific answer normalization
+    const normalize = ans => ans.replace(/[^a-z0-9]/g, '');
+    
+    const isCorrect = 
+      normalize(userAns) === normalize(correctAns) ||
+      (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2);
+
+    feedback.textContent = isCorrect 
+      ? "✅ Correct (MIT Standard)" 
+      : `❌ Incorrect. MIT Answer: ${qnaPairs[currentIndex].answer}`;
+    feedback.className = isCorrect ? "correct" : "incorrect";
+    nextBtn.disabled = false;
+  }
+</script>
 </body>
 </html>
