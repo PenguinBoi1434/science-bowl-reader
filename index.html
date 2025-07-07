@@ -14,9 +14,11 @@
     }
     #controls {
       margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
     button, input[type="file"], #answer-input {
-      margin-right: 1rem;
       padding: 0.5rem 1rem;
       font-size: 1rem;
     }
@@ -32,10 +34,23 @@
     #answer-input {
       width: 100%;
       box-sizing: border-box;
+      margin-bottom: 0.5rem;
     }
     #feedback {
       font-weight: bold;
       margin-top: 0.5rem;
+      min-height: 1.5em;
+    }
+    .correct {
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+    #progress {
+      margin-top: 1rem;
+      font-size: 0.9em;
+      color: #666;
     }
   </style>
 </head>
@@ -49,6 +64,7 @@
     <button id="next-btn" disabled>Next Question</button>
   </div>
 
+  <div id="progress"></div>
   <div id="question-box">Upload a Science Bowl PDF to begin.</div>
   <input type="text" id="answer-input" placeholder="Type your answer here" disabled />
   <div id="feedback"></div>
@@ -66,12 +82,17 @@
     const upload = document.getElementById("pdf-upload");
     const input = document.getElementById("answer-input");
     const feedback = document.getElementById("feedback");
+    const progress = document.getElementById("progress");
 
     upload.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       try {
+        box.textContent = "Processing PDF...";
+        feedback.textContent = "";
+        startBtn.disabled = true;
+        
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
@@ -83,40 +104,54 @@
           rawText += strings.join(" ") + "\n";
         }
 
-        // Flatten line breaks and split by TOSS UP or BONUS, keep all text intact per question block
+        // Improved question parsing
         const rawItems = rawText
           .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
           .split(/(?=TOSS\s*UP|BONUS)/i)
           .map(q => q.trim())
           .filter(q => q.length > 30 && /MATH|PHYSICS/i.test(q));
 
-      qnaPairs = rawItems.map(item => {
-  // Extract answer starting at "ANSWER:" or "The answer is:" until the end of the block
-  const answerMatch = item.match(/ANSWER[:\s\-]+([\s\S]*)$/i) || item.match(/The answer is[:\s\-]+([\s\S]*)$/i);
-  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
-
-  // Remove the entire answer part from the question text, including "ANSWER:" and everything after it
-  let cleaned = item.replace(/ANSWER[:\s\-]+[\s\S]*$/gi, '')
-                    .replace(/The answer is[:\s\-]+[\s\S]*$/gi, '')
-                    .trim();
-
-  return { question: cleaned, answer };
-});
+        qnaPairs = rawItems.map(item => {
+          // Improved answer extraction
+          const answerMatch = item.match(/(?:ANSWER|The answer is)[:\s\-]+([^\.]+)/i);
+          let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+          
+          // Clean up answer (remove trailing punctuation)
+          answer = answer.replace(/[.,;:]$/, '').trim();
+          
+          // Clean question text
+          let cleaned = item.replace(/(?:ANSWER|The answer is)[:\s\-]+[^\.]+/gi, '')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+          
+          return { 
+            question: cleaned, 
+            answer: answer,
+            raw: item // Keep original for debugging
+          };
+        });
 
         if (qnaPairs.length === 0) {
-          box.textContent = "No math or physics questions found.";
+          box.textContent = "No math or physics questions found in the PDF.";
+          feedback.textContent = "Please try a different Science Bowl file.";
         } else {
-          box.textContent = `Loaded ${qnaPairs.length} math/physics questions. Press Start.`;
+          box.textContent = `Successfully loaded ${qnaPairs.length} math/physics questions. Press "Start Quiz" to begin.`;
           startBtn.disabled = false;
           nextBtn.disabled = true;
           input.disabled = true;
-          feedback.textContent = "";
+          updateProgress();
         }
       } catch (err) {
-        console.error("PDF read error:", err);
-        box.textContent = "Failed to read PDF. Make sure it's a valid Science Bowl file.";
+        console.error("PDF processing error:", err);
+        box.textContent = "Error processing PDF. Please ensure it's a valid Science Bowl file.";
+        feedback.textContent = err.message;
       }
     });
+
+    function updateProgress() {
+      progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
+    }
 
     startBtn.onclick = () => {
       currentIndex = 0;
@@ -127,14 +162,16 @@
       startBtn.disabled = true;
       nextBtn.disabled = true;
       showQuestion();
+      input.focus();
     };
 
     nextBtn.onclick = () => {
       currentIndex++;
       if (currentIndex >= qnaPairs.length) {
-        box.textContent = "Quiz complete!";
+        box.textContent = "Quiz complete! You've answered all questions.";
         input.disabled = true;
         nextBtn.disabled = true;
+        progress.textContent = `Completed ${qnaPairs.length} questions`;
         return;
       }
       answered = false;
@@ -143,29 +180,43 @@
       input.disabled = false;
       nextBtn.disabled = true;
       showQuestion();
+      input.focus();
     };
 
     input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !answered) {
+      if (e.key === "Enter" && !answered && input.value.trim()) {
         checkAnswer();
       }
     });
 
     function showQuestion() {
       box.textContent = qnaPairs[currentIndex].question;
+      updateProgress();
     }
 
     function checkAnswer() {
-      const userAns = input.value.trim().toLowerCase();
-      const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
+      const userAns = normalizeAnswer(input.value.trim());
+      const correctAns = normalizeAnswer(qnaPairs[currentIndex].answer);
+      
       answered = true;
       input.disabled = true;
+      
       if (userAns === correctAns) {
-        feedback.textContent = "✅ Correct! The answer is: " + qnaPairs[currentIndex].answer;
+        feedback.textContent = "✅ Correct!";
+        feedback.className = "correct";
       } else {
-        feedback.textContent = "❌ Incorrect. The correct answer is: " + qnaPairs[currentIndex].answer;
+        feedback.textContent = `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
+        feedback.className = "incorrect";
       }
       nextBtn.disabled = false;
+      nextBtn.focus();
+    }
+    
+    function normalizeAnswer(answer) {
+      return answer.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+        .replace(/\s+/g, ' ')        // Normalize whitespace
+        .trim();
     }
   </script>
 
