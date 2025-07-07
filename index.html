@@ -90,17 +90,18 @@
           .map(q => q.trim())
           .filter(q => q.length > 30 && /MATH|PHYSICS/i.test(q));
 
-        qnaPairs = rawItems.map(item => {
-          const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?=\sTOSS|BONUS|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?=\sTOSS|BONUS|$)/i);
-          let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+      qnaPairs = rawItems.map(item => {
+  // Extract answer starting at "ANSWER:" or "The answer is:" until the end of the block
+  const answerMatch = item.match(/ANSWER[:\s\-]+([\s\S]*)$/i) || item.match(/The answer is[:\s\-]+([\s\S]*)$/i);
+  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
 
-          // Remove answer from question text (but keep rest intact)
-          let cleaned = item.replace(/ANSWER[:\s\-]+(.+?)(?=\sTOSS|BONUS|$)/gi, '')
-                            .replace(/The answer is[:\s\-]+(.+?)(?=\sTOSS|BONUS|$)/gi, '')
-                            .trim();
+  // Remove the entire answer part from the question text, including "ANSWER:" and everything after it
+  let cleaned = item.replace(/ANSWER[:\s\-]+[\s\S]*$/gi, '')
+                    .replace(/The answer is[:\s\-]+[\s\S]*$/gi, '')
+                    .trim();
 
-          return { question: cleaned, answer };
-        });
+  return { question: cleaned, answer };
+});
 
         if (qnaPairs.length === 0) {
           box.textContent = "No math or physics questions found.";
