@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Science Bowl Math & Physics Reader</title>
+  <title>MIT Science Bowl Reader</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
     body {
@@ -53,18 +53,18 @@
       color: #666;
       margin: 10px 0;
     }
-    .subject-tag {
-      display: inline-block;
-      background: #e0e0e0;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.8em;
-      margin-right: 8px;
+    .question-header {
+      color: #444;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .answer-option {
+      margin: 5px 0;
     }
   </style>
 </head>
 <body>
-  <h1>Science Bowl Reader (Math & Physics Only)</h1>
+  <h1>MIT Science Bowl Reader (Math/Physics)</h1>
   
   <div id="controls">
     <input type="file" id="pdf-upload" accept=".pdf">
@@ -73,7 +73,7 @@
   </div>
   
   <div id="progress"></div>
-  <div id="question-box">Upload a Science Bowl PDF to begin.</div>
+  <div id="question-box">Upload an MIT Science Bowl PDF to begin.</div>
   <input type="text" id="answer-input" placeholder="Type your answer here" disabled>
   <div id="feedback"></div>
 
@@ -98,7 +98,7 @@
       if (!file) return;
 
       try {
-        box.textContent = "Processing PDF...";
+        box.textContent = "Processing MIT Packet...";
         feedback.textContent = "";
         startBtn.disabled = true;
         
@@ -106,55 +106,76 @@
         const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
         let fullText = "";
 
-        // Extract text from all pages
+        // Extract text from all pages (with improved text extraction)
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          fullText += content.items.map(item => item.str).join(" ") + "\n";
+          const textContent = await page.getTextContent({
+            normalizeWhitespace: false,
+            disableCombineTextItems: false
+          });
+          // Preserve line breaks for better question detection
+          fullText += textContent.items.map(item => item.str).join('') + '\n';
         }
 
-        // Parse questions - looks for standard Science Bowl format
-        const questionBlocks = fullText.split(/(?=\d+\)\s*(?:MATH|PHYSICS)\s+(?:Short Answer|Multiple Choice)\s+)/i);
+        console.log("Raw extracted text:", fullText); // For debugging
+
+        // Enhanced MIT packet parser
+        const questionBlocks = fullText.split(/(\d+\)\s*(?:TOSS-UP|BONUS)\s*(?:MATH|PHYSICS)\s+(?:Multiple Choice|Short Answer)\s+.*?(?=\d+\)\s*(?:TOSS-UP|BONUS)|$)/gis);
         
         qnaPairs = [];
         questionBlocks.forEach(block => {
-          if (!block.trim() || block.includes("ANSWER")) return;
+          if (!block.trim() || block.length < 20) return; // Skip small fragments
 
-          // Extract subject and question text
-          const subjectMatch = block.match(/^(.*?)(MATH|PHYSICS)/i);
-          if (!subjectMatch) return;
-          
-          const subject = subjectMatch[2].toUpperCase();
-          let questionText = block.slice(subjectMatch.index).trim();
+          // Extract question details
+          const headerMatch = block.match(/^(\d+)\)\s*(TOSS-UP|BONUS)\s*(MATH|PHYSICS)\s+(Multiple Choice|Short Answer)\s+/i);
+          if (!headerMatch) return;
 
-          // Extract answer
-          const answerMatch = questionText.match(/(?:ANSWER|The answer is)[:\-\s]+([^\n]+)/i);
+          const questionText = block.slice(headerMatch[0].length).trim();
+          const answerMatch = questionText.match(/(?:ANSWER:\s*)(.*?)$/im);
           if (!answerMatch) return;
 
+          const questionBody = questionText.slice(0, answerMatch.index).trim();
           const answer = answerMatch[1].trim();
-          questionText = questionText.slice(0, answerMatch.index).trim();
+
+          // Format multiple choice options
+          let formattedQuestion = questionBody;
+          if (headerMatch[4] === "Multiple Choice") {
+            formattedQuestion = questionBody.replace(/([WXYZ]\))/g, '\n$1');
+          }
 
           qnaPairs.push({
-            subject: subject,
-            question: questionText.replace(/\s+/g, " "),
-            answer: answer.replace(/\s+/g, " ")
+            header: `Q${headerMatch[1]} (${headerMatch[2]} ${headerMatch[3]} ${headerMatch[4]})`,
+            question: formattedQuestion,
+            answer: answer,
+            subject: headerMatch[3]
           });
         });
 
+        // Filter only Math/Physics questions
+        qnaPairs = qnaPairs.filter(q => q.subject === "MATH" || q.subject === "PHYSICS");
+
         if (qnaPairs.length > 0) {
-          box.innerHTML = `Loaded ${qnaPairs.length} Math/Physics questions.<br>Press <strong>Start Quiz</strong> to begin.`;
+          box.innerHTML = `Successfully loaded ${qnaPairs.length} Math/Physics questions.<br>Press <strong>Start Quiz</strong> to begin.`;
           startBtn.disabled = false;
+          console.log("Parsed questions:", qnaPairs); // For debugging
         } else {
-          box.textContent = "No Math/Physics questions found. Try a different Science Bowl PDF.";
+          box.innerHTML = `
+            No Math/Physics questions found.<br><br>
+            Common issues:<br>
+            1. PDF may be scanned (not text-selectable)<br>
+            2. Unexpected question format<br>
+            3. Packet may not contain Math/Physics questions<br><br>
+            Check console (F12) for extracted text.
+          `;
         }
 
       } catch (err) {
-        box.textContent = "Error processing PDF. Please ensure it's a valid Science Bowl file.";
-        console.error("PDF Error:", err);
+        box.textContent = "Error processing PDF. Please check console (F12) for details.";
+        console.error("PDF Processing Error:", err);
       }
     });
 
-    // Start the quiz
+    // [Rest of the code remains the same as previous version]
     startBtn.onclick = () => {
       currentIndex = 0;
       input.disabled = false;
@@ -165,7 +186,6 @@
       input.focus();
     };
 
-    // Next question
     nextBtn.onclick = () => {
       currentIndex++;
       if (currentIndex >= qnaPairs.length) {
@@ -179,21 +199,21 @@
       showQuestion();
     };
 
-    // Display current question
     function showQuestion() {
       const q = qnaPairs[currentIndex];
-      box.innerHTML = `<span class="subject-tag">${q.subject}</span>${q.question}`;
+      box.innerHTML = `
+        <div class="question-header">${q.header}</div>
+        <div>${q.question}</div>
+      `;
       progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
       input.focus();
       nextBtn.disabled = true;
     }
 
-    // Check answer when Enter is pressed
     input.addEventListener("keypress", (e) => {
       if (e.key === "Enter") checkAnswer();
     });
 
-    // Verify user's answer
     function checkAnswer() {
       const userAns = input.value.trim().toLowerCase();
       const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
@@ -204,15 +224,12 @@
       // Check if answer is correct (allows for multiple choice letters too)
       const isCorrect = 
         normalize(userAns) === normalize(correctAns) ||
-        (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2);
+        (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2;
 
-      if (isCorrect) {
-        feedback.textContent = "✅ Correct!";
-        feedback.className = "correct";
-      } else {
-        feedback.textContent = `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
-        feedback.className = "incorrect";
-      }
+      feedback.textContent = isCorrect 
+        ? "✅ Correct!" 
+        : `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
+      feedback.className = isCorrect ? "correct" : "incorrect";
       
       nextBtn.disabled = false;
       nextBtn.focus();
