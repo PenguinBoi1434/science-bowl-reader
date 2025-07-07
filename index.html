@@ -1,45 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Science Bowl Math & Physics Quiz</title>
+  <meta charset="UTF-8">
+  <title>Science Bowl Math & Physics Reader</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       max-width: 800px;
-      margin: auto;
-      padding: 2rem;
+      margin: 0 auto;
+      padding: 20px;
       background: #f5f5f5;
     }
     #controls {
-      margin-bottom: 1rem;
+      margin: 20px 0;
       display: flex;
+      gap: 10px;
       flex-wrap: wrap;
-      gap: 0.5rem;
     }
-    button, input[type="file"], #answer-input {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
+    button, input[type="file"] {
+      padding: 10px 15px;
+      font-size: 16px;
     }
     #question-box {
-      background: #fff;
-      padding: 1rem;
+      background: white;
+      padding: 20px;
       border-radius: 8px;
-      border: 1px solid #ccc;
-      white-space: pre-wrap;
+      border: 1px solid #ddd;
       min-height: 150px;
-      margin-bottom: 1rem;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
     }
     #answer-input {
       width: 100%;
+      padding: 10px;
+      font-size: 16px;
       box-sizing: border-box;
-      margin-bottom: 0.5rem;
+      margin-bottom: 10px;
     }
     #feedback {
       font-weight: bold;
-      margin-top: 0.5rem;
-      min-height: 1.5em;
+      margin: 10px 0;
+      min-height: 24px;
     }
     .correct {
       color: green;
@@ -48,167 +50,173 @@
       color: red;
     }
     #progress {
-      margin-top: 1rem;
-      font-size: 0.9em;
       color: #666;
+      margin: 10px 0;
+    }
+    .subject-tag {
+      display: inline-block;
+      background: #e0e0e0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      margin-right: 8px;
     }
   </style>
 </head>
 <body>
-
-  <h2>Math & Physics Quiz Reader</h2>
-
+  <h1>Science Bowl Reader (Math & Physics Only)</h1>
+  
   <div id="controls">
-    <input type="file" id="pdf-upload" accept=".pdf" />
+    <input type="file" id="pdf-upload" accept=".pdf">
     <button id="start-btn" disabled>Start Quiz</button>
     <button id="next-btn" disabled>Next Question</button>
   </div>
-
+  
   <div id="progress"></div>
   <div id="question-box">Upload a Science Bowl PDF to begin.</div>
-  <input type="text" id="answer-input" placeholder="Type your answer here" disabled />
+  <input type="text" id="answer-input" placeholder="Type your answer here" disabled>
   <div id="feedback"></div>
 
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-  let qnaPairs = [];
-  let currentIndex = 0;
+    let qnaPairs = [];
+    let currentIndex = 0;
 
-  // DOM elements
-  const box = document.getElementById("question-box");
-  const startBtn = document.getElementById("start-btn");
-  const nextBtn = document.getElementById("next-btn");
-  const upload = document.getElementById("pdf-upload");
-  const input = document.getElementById("answer-input");
-  const feedback = document.getElementById("feedback");
-  const progress = document.getElementById("progress");
+    // Get DOM elements
+    const box = document.getElementById("question-box");
+    const startBtn = document.getElementById("start-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const upload = document.getElementById("pdf-upload");
+    const input = document.getElementById("answer-input");
+    const feedback = document.getElementById("feedback");
+    const progress = document.getElementById("progress");
 
-  // MIT Packet Specific Parser
-  upload.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    // Process uploaded PDF
+    upload.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    try {
-      box.textContent = "Processing MIT Packet...";
-      startBtn.disabled = true;
+      try {
+        box.textContent = "Processing PDF...";
+        feedback.textContent = "";
+        startBtn.disabled = true;
+        
+        // Load PDF
+        const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+        let fullText = "";
+
+        // Extract text from all pages
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          fullText += content.items.map(item => item.str).join(" ") + "\n";
+        }
+
+        // Parse questions - looks for standard Science Bowl format
+        const questionBlocks = fullText.split(/(?=\d+\)\s*(?:MATH|PHYSICS)\s+(?:Short Answer|Multiple Choice)\s+)/i);
+        
+        qnaPairs = [];
+        questionBlocks.forEach(block => {
+          if (!block.trim() || block.includes("ANSWER")) return;
+
+          // Extract subject and question text
+          const subjectMatch = block.match(/^(.*?)(MATH|PHYSICS)/i);
+          if (!subjectMatch) return;
+          
+          const subject = subjectMatch[2].toUpperCase();
+          let questionText = block.slice(subjectMatch.index).trim();
+
+          // Extract answer
+          const answerMatch = questionText.match(/(?:ANSWER|The answer is)[:\-\s]+([^\n]+)/i);
+          if (!answerMatch) return;
+
+          const answer = answerMatch[1].trim();
+          questionText = questionText.slice(0, answerMatch.index).trim();
+
+          qnaPairs.push({
+            subject: subject,
+            question: questionText.replace(/\s+/g, " "),
+            answer: answer.replace(/\s+/g, " ")
+          });
+        });
+
+        if (qnaPairs.length > 0) {
+          box.innerHTML = `Loaded ${qnaPairs.length} Math/Physics questions.<br>Press <strong>Start Quiz</strong> to begin.`;
+          startBtn.disabled = false;
+        } else {
+          box.textContent = "No Math/Physics questions found. Try a different Science Bowl PDF.";
+        }
+
+      } catch (err) {
+        box.textContent = "Error processing PDF. Please ensure it's a valid Science Bowl file.";
+        console.error("PDF Error:", err);
+      }
+    });
+
+    // Start the quiz
+    startBtn.onclick = () => {
+      currentIndex = 0;
+      input.disabled = false;
+      input.value = "";
       feedback.textContent = "";
-      
-      const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
-      let fullText = "";
+      startBtn.disabled = true;
+      showQuestion();
+      input.focus();
+    };
 
-      // Special handling for MIT's two-column format
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent({
-          normalizeWhitespace: true,
-          disableCombineTextItems: false
-        });
-        fullText += textContent.items.map(item => item.str).join('') + '\n';
+    // Next question
+    nextBtn.onclick = () => {
+      currentIndex++;
+      if (currentIndex >= qnaPairs.length) {
+        box.textContent = "Quiz complete! You've answered all Math/Physics questions.";
+        input.disabled = true;
+        nextBtn.disabled = true;
+        return;
       }
+      input.value = "";
+      feedback.textContent = "";
+      showQuestion();
+    };
 
-      console.log("Extracted PDF text:", fullText); // For debugging
-
-      // MIT-specific question patterns
-      const questionRegex = /(\d+)\)\s*(TOSS-UP|BONUS)\s*(MATH|PHYSICS)\s+(Short Answer|Multiple Choice)\s+(.*?)(?=ANSWER|$)/gis;
-      const answerRegex = /ANSWER:\s*(.*?)(?=\d+\)\s*(?:TOSS-UP|BONUS)|$)/gis;
-      
-      // Find all questions and answers
-      const questions = [];
-      let qMatch;
-      while ((qMatch = questionRegex.exec(fullText)) !== null) {
-        questions.push({
-          index: qMatch.index,
-          number: qMatch[1],
-          type: qMatch[2],
-          subject: qMatch[3],
-          format: qMatch[4],
-          text: qMatch[5].trim()
-        });
-      }
-
-      const answers = [];
-      let aMatch;
-      while ((aMatch = answerRegex.exec(fullText)) !== null) {
-        answers.push({
-          index: aMatch.index,
-          text: aMatch[1].trim()
-        });
-      }
-
-      // Pair questions with their answers
-      qnaPairs = questions.map((q, i) => {
-        const correspondingAnswer = answers.find(a => a.index > q.index) || answers[i];
-        return {
-          question: `${q.number}) ${q.type} ${q.subject} ${q.format} ${q.text}`,
-          answer: correspondingAnswer ? correspondingAnswer.text : "Answer not found"
-        };
-      });
-
-      if (qnaPairs.length > 0) {
-        box.textContent = `Loaded ${qnaPairs.length} MIT questions. Press Start.`;
-        startBtn.disabled = false;
-        console.log("Parsed questions:", qnaPairs); // For debugging
-      } else {
-        box.textContent = "No questions found. MIT packet format may be different than expected.";
-        feedback.textContent = "Try opening browser console (F12) to see extracted text.";
-      }
-
-    } catch (err) {
-      box.textContent = "Failed to process MIT packet.";
-      feedback.textContent = "Check console (F12) for details.";
-      console.error("MIT Packet Error:", err);
-      console.log("Partial extracted text:", fullText);
-    }
-  });
-
-  // [Rest of your existing quiz control functions remain the same]
-  startBtn.onclick = () => {
-    currentIndex = 0;
-    showQuestion();
-    input.disabled = false;
-    startBtn.disabled = true;
-  };
-
-  nextBtn.onclick = () => {
-    if (++currentIndex >= qnaPairs.length) {
-      box.textContent = "MIT packet quiz complete!";
+    // Display current question
+    function showQuestion() {
+      const q = qnaPairs[currentIndex];
+      box.innerHTML = `<span class="subject-tag">${q.subject}</span>${q.question}`;
+      progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
+      input.focus();
       nextBtn.disabled = true;
-      return;
     }
-    input.value = "";
-    feedback.textContent = "";
-    showQuestion();
-  };
 
-  function showQuestion() {
-    const q = qnaPairs[currentIndex];
-    box.textContent = q.question;
-    progress.textContent = `MIT Question ${currentIndex + 1}/${qnaPairs.length}`;
-    input.focus();
-  }
+    // Check answer when Enter is pressed
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") checkAnswer();
+    });
 
-  input.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") checkAnswer();
-  });
+    // Verify user's answer
+    function checkAnswer() {
+      const userAns = input.value.trim().toLowerCase();
+      const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
 
-  function checkAnswer() {
-    const userAns = input.value.trim().toLowerCase();
-    const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
+      // Normalize answers for comparison
+      const normalize = (str) => str.replace(/[^a-z0-9]/g, "");
 
-    // MIT-specific answer normalization
-    const normalize = ans => ans.replace(/[^a-z0-9]/g, '');
-    
-    const isCorrect = 
-      normalize(userAns) === normalize(correctAns) ||
-      (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2;
+      // Check if answer is correct (allows for multiple choice letters too)
+      const isCorrect = 
+        normalize(userAns) === normalize(correctAns) ||
+        (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2);
 
-    feedback.textContent = isCorrect 
-      ? "✅ Correct (MIT Standard)" 
-      : `❌ Incorrect. MIT Answer: ${qnaPairs[currentIndex].answer}`;
-    feedback.className = isCorrect ? "correct" : "incorrect";
-    nextBtn.disabled = false;
-  }
-</script>
+      if (isCorrect) {
+        feedback.textContent = "✅ Correct!";
+        feedback.className = "correct";
+      } else {
+        feedback.textContent = `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
+        feedback.className = "incorrect";
+      }
+      
+      nextBtn.disabled = false;
+      nextBtn.focus();
+    }
+  </script>
 </body>
 </html>
