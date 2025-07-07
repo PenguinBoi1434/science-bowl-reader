@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Science Bowl PDF Reader</title>
+  <title>Science Bowl Math & Physics Quiz</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
     body {
@@ -26,84 +26,43 @@
       border-radius: 8px;
       border: 1px solid #ccc;
       white-space: pre-wrap;
-      min-height: 150px;
+      min-height: 100px;
+    }
+    #answer-input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+    #feedback {
+      margin-top: 1rem;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-  <h2>Science Bowl PDF Reader</h2>
+  <h2>Math & Physics Quiz Reader</h2>
 
   <div id="controls">
     <input type="file" id="pdf-upload" accept=".pdf" />
-    <button id="start-btn" disabled>Start</button>
-    <button id="next-btn" disabled>Next</button>
+    <button id="start-btn" disabled>Start Quiz</button>
   </div>
 
-  <div id="question-box">Upload a PDF to begin.</div>
+  <div id="question-box">Upload a Science Bowl PDF to begin.</div>
+  <input type="text" id="answer-input" placeholder="Type your answer and press Enter" disabled />
+  <div id="feedback"></div>
 
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    let qnaPairs = [];
-    let currentIndex = 0;
-    let phase = "question";
+    let qnaPairs = [], currentIndex = 0;
 
     const box = document.getElementById("question-box");
     const startBtn = document.getElementById("start-btn");
-    const nextBtn = document.getElementById("next-btn");
     const upload = document.getElementById("pdf-upload");
-
-    function speak(text) {
-      const msg = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(msg);
-    }
-
-    function showCurrent() {
-      if (currentIndex >= qnaPairs.length) {
-        box.textContent = "End of questions.";
-        speak("End of questions.");
-        nextBtn.disabled = true;
-        return;
-      }
-
-      const item = qnaPairs[currentIndex];
-      if (phase === "question") {
-        box.textContent = item.question;
-        speak(item.question);
-      } else if (phase === "answer") {
-        box.textContent += "\n\nAnswer: " + item.answer;
-        speak("The answer is: " + item.answer);
-      }
-    }
-
-    function advance() {
-      if (phase === "question") {
-        phase = "answer";
-      } else {
-        phase = "question";
-        currentIndex++;
-      }
-      showCurrent();
-    }
-
-    startBtn.onclick = () => {
-      currentIndex = 0;
-      phase = "question";
-      showCurrent();
-      nextBtn.disabled = false;
-      startBtn.disabled = true;
-    };
-
-    nextBtn.onclick = advance;
-
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        e.preventDefault();
-        advance();
-      }
-    });
+    const input = document.getElementById("answer-input");
+    const feedback = document.getElementById("feedback");
 
     upload.addEventListener("change", async (e) => {
       const file = e.target.files[0];
@@ -121,40 +80,43 @@
           rawText += strings.join(" ") + "\n";
         }
 
-        const rawItems = rawText.split(/(?=TOSS\s+UP|BONUS)/i)
+        const rawItems = rawText.split(/(?=(TOSS\s*UP|BONUS))/i)
           .map(q => q.trim())
           .filter(q => q.length > 20);
 
-        qnaPairs = rawItems
-          .map(item => {
-            const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?:\n|$)/i);
-            let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+qnaPairs = rawText
+  .replace(/\n/g, ' ') // Flatten line breaks
+  .split(/(?=(TOSS\s*UP|BONUS))/i)
+  .map(q => q.trim())
+  .filter(q => q.length > 30 && /MATH|PHYSICS/i.test(q))
+  .map(item => {
+    const answerMatch = item.match(/ANSWER[:\s\-]+(.+?)(?:\n|$)/i) || item.match(/The answer is[:\s\-]+(.+?)(?:\n|$)/i);
+    const answer = answerMatch ? answerMatch[1].trim() : "Unknown";
 
-            let cleaned = item
-              .replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/gi, '')
-              .replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/gi, '')
-              .replace(/^Answer:\s*/i, '')
-              .replace(/MIT Science Bowl.*$/i, '')
-              .trim();
+    let cleaned = item
+      .replace(/ANSWER[:\s\-]+(.+?)(?:\n|$)/gi, '')
+      .replace(/The answer is[:\s\-]+(.+?)(?:\n|$)/gi, '')
+      .replace(/^Answer:\s*/i, '')
+      .replace(/MIT Science Bowl.*$/i, '')
+      .trim();
 
-            cleaned = cleaned.replace(/\s(W\))/g, '\n$1');
-            cleaned = cleaned.replace(/\s(X\))/g, '\n$1');
-            cleaned = cleaned.replace(/\s(Y\))/g, '\n$1');
-            cleaned = cleaned.replace(/\s(Z\))/g, '\n$1');
+    cleaned = cleaned.replace(/\s(W\))/g, '\n$1')
+                     .replace(/\s(X\))/g, '\n$1')
+                     .replace(/\s(Y\))/g, '\n$1')
+                     .replace(/\s(Z\))/g, '\n$1');
 
-            return {
-              subject: cleaned.slice(0, 20).toUpperCase(), // grab start of question
-              question: cleaned,
-              answer: answer
-            };
-          })
-          .filter(item => item.subject.includes("PHYSICS") || item.subject.includes("MATH"))
-          .map(item => ({ question: item.question, answer: item.answer }));
-
+    return {
+      subject: cleaned.slice(0, 20).toUpperCase(),
+      question: cleaned,
+      answer: answer
+    };
+  })
+  .filter(item => item.subject.includes("PHYSICS") || item.subject.includes("MATH"))
+  .map(item => ({ question: item.question, answer: item.answer }));
         if (qnaPairs.length === 0) {
           box.textContent = "No math or physics questions found.";
         } else {
-          box.textContent = `Loaded ${qnaPairs.length} math/physics questions. Press Start.`;
+          box.textContent = `Loaded ${qnaPairs.length} math/physics questions.`;
           startBtn.disabled = false;
         }
       } catch (err) {
@@ -162,6 +124,44 @@
         box.textContent = "Failed to read PDF. Make sure it's a valid Science Bowl file.";
       }
     });
+
+    startBtn.onclick = () => {
+      currentIndex = 0;
+      input.disabled = false;
+      input.value = "";
+      feedback.textContent = "";
+      showQuestion();
+    };
+
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    function showQuestion() {
+      if (currentIndex >= qnaPairs.length) {
+        box.textContent = "Quiz complete!";
+        input.disabled = true;
+        return;
+      }
+      box.textContent = qnaPairs[currentIndex].question;
+      input.value = "";
+      feedback.textContent = "";
+    }
+
+    function checkAnswer() {
+      const userAns = input.value.trim().toLowerCase();
+      const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
+      if (userAns === correctAns) {
+        feedback.textContent = "✅ Correct!";
+        currentIndex++;
+        setTimeout(showQuestion, 1000);
+      } else {
+        feedback.textContent = `❌ Incorrect. Correct answer: ${qnaPairs[currentIndex].answer}`;
+        currentIndex++;
+        setTimeout(showQuestion, 2500);
+      }
+    }
   </script>
 </body>
 </html>
+
