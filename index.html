@@ -112,25 +112,47 @@
           .map(q => q.trim())
           .filter(q => q.length > 30 && /MATH|PHYSICS/i.test(q));
 
-        qnaPairs = rawItems.map(item => {
-          // Improved answer extraction
-          const answerMatch = item.match(/(?:ANSWER|The answer is)[:\s\-]+([^\.]+)/i);
-          let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
-          
-          // Clean up answer (remove trailing punctuation)
-          answer = answer.replace(/[.,;:]$/, '').trim();
-          
-          // Clean question text
-          let cleaned = item.replace(/(?:ANSWER|The answer is)[:\s\-]+[^\.]+/gi, '')
-                            .replace(/\s+/g, ' ')
-                            .trim();
-          
-          return { 
-            question: cleaned, 
-            answer: answer,
-            raw: item // Keep original for debugging
-          };
-        });
+     // Inside PDF processing:
+qnaPairs = rawItems.map(item => {
+  // Extract answer (supports "ANSWER: X) ..." or "The answer is: Y) ...")
+  const answerMatch = item.match(/(?:ANSWER|The answer is)[:\s\-]+([^\.]+(?:\.|$))/i);
+  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+
+  // Clean question text (keep options if multiple-choice)
+  let cleaned = item.replace(/(?:ANSWER|The answer is)[:\s\-]+([^\.]+(?:\.|$))/gi, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+  // Check if it's multiple-choice (W), X), Y), Z))
+  const options = cleaned.match(/[WXYZ]\)\s.+?(?=\s[WXYZ]\)|$)/gi);
+  
+  return { 
+    question: cleaned, 
+    answer: answer,
+    options: options || null // Store options if available
+  };
+});
+
+// In checkAnswer():
+function checkAnswer() {
+  const userAns = normalizeAnswer(input.value.trim());
+  const correctAns = normalizeAnswer(qnaPairs[currentIndex].answer);
+
+  // Allow "X" or "X) ..." to match
+  const isCorrect = userAns === correctAns || 
+                    userAns.startsWith(correctAns.charAt(0)) || // "x" matches "x) ..."
+                    correctAns.startsWith(userAns.charAt(0));
+
+  if (isCorrect) {
+    feedback.textContent = "✅ Correct!";
+    feedback.className = "correct";
+  } else {
+    feedback.textContent = `❌ Incorrect. The correct answer is: ${qnaPairs[currentIndex].answer}`;
+    feedback.className = "incorrect";
+  }
+  nextBtn.disabled = false;
+}
+
 
         if (qnaPairs.length === 0) {
           box.textContent = "No math or physics questions found in the PDF.";
