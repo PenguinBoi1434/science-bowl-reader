@@ -105,12 +105,26 @@
         }
 
         // Improved question parsing
-        const rawItems = rawText
-          .replace(/\n/g, " ")
-          .replace(/\s+/g, " ")
-          .split(/(?=TOSS\s*UP|BONUS)/i)
-          .map(q => q.trim())
-          .filter(q => q.length > 30 && /MATH|PHYSICS/i.test(q));
+        // Replace your current parsing logic with this:
+const rawItems = rawText
+  .replace(/\n/g, " ") // Replace newlines with spaces
+  .replace(/\s+/g, " ") // Collapse multiple spaces
+  .split(/(\d+\)\s*(?:MATH|PHYSICS).*?(?=ANSWER|$)/i) // Split at question starts
+  .filter(item => item.trim().length > 0 && !item.match(/^ANSWER/i));
+
+qnaPairs = rawItems.map(item => {
+  // Extract answer (supports "ANSWER:" or "The answer is:")
+  const answerMatch = item.match(/(?:ANSWER|The answer is)[:\s\-]+\s*([^\n]+)/i);
+  let answer = answerMatch ? answerMatch[1].trim() : "Unknown";
+
+  // Remove ANSWER part but keep the rest of the question intact
+  let question = item.replace(/(?:ANSWER|The answer is)[:\s\-]+\s*([^\n]+)/gi, '').trim();
+
+  return { 
+    question: question,
+    answer: answer 
+  };
+});
 
      // Inside PDF processing:
 qnaPairs = rawItems.map(item => {
