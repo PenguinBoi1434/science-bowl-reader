@@ -84,68 +84,67 @@
   const feedback = document.getElementById("feedback");
   const progress = document.getElementById("progress");
 
-  // MIT Packet Specific Parser
+  // PDF processing
   upload.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      box.textContent = "Processing MIT Packet...";
+      box.textContent = "Processing PDF...";
+      feedback.textContent = "";
       startBtn.disabled = true;
       
       const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
       let fullText = "";
 
-      // MIT packets often have 2-column layout - we need special handling
+      // Extract text from all pages
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent({
-          normalizeWhitespace: true,
-          disableCombineTextItems: false
-        });
-        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+        const content = await page.getTextContent();
+        fullText += content.items.map(item => item.str).join(" ") + "\n";
       }
 
-      // MIT-specific question parsing
-      const questionRegex = /(\d+)\)\s*(TOSS-UP|BONUS)\s*(MATH|PHYSICS).*?(?=ANSWER|$)/gis;
-      const answerRegex = /ANSWER:\s*(.*?)(?=\d+\)|$)/gis;
-      
-      let questions = [];
-      let qMatch;
-      while ((qMatch = questionRegex.exec(fullText)) !== null) {
-        questions.push({
-          index: qMatch.index,
-          text: qMatch[0].trim()
-        });
-      }
+      // Parse questions
+      qnaPairs = [];
+      const questionBlocks = fullText.split(/(?=\d+\)\s*(?:MATH|PHYSICS)\s+(?:Short Answer|Multiple Choice)\s+)/i);
 
-      let aMatch;
-      while ((aMatch = answerRegex.exec(fullText)) !== null) {
-        const answer = aMatch[1].trim();
-        // Find the question preceding this answer
-        const question = questions.reverse().find(q => q.index < aMatch.index);
-        if (question) {
-          qnaPairs.push({
-            question: question.text.replace(/\s+/g, ' '),
-            answer: answer.replace(/\s+/g, ' ')
-          });
-        }
-      }
+      questionBlocks.forEach(block => {
+        if (!block.trim() || block.includes("ANSWER")) return;
+
+        // Extract question header
+        const headerMatch = block.match(/^(\d+\)\s*(.*?))\s*(?=ANSWER|$)/i);
+        if (!headerMatch) return;
+
+        const header = headerMatch[1];
+        let questionText = block.slice(headerMatch[0].length).trim();
+
+        // Extract answer
+        const answerMatch = questionText.match(/(?:ANSWER|The answer is)[:\-\s]+([^\n]+)/i);
+        if (!answerMatch) return;
+
+        const answer = answerMatch[1].trim();
+        questionText = questionText.slice(0, answerMatch.index).trim();
+
+        qnaPairs.push({
+          question: `${header}\n${questionText}`.replace(/\s+/g, " "),
+          answer: answer
+        });
+      });
 
       if (qnaPairs.length > 0) {
-        box.textContent = `Loaded ${qnaPairs.length} MIT questions. Press Start.`;
+        box.textContent = `Loaded ${qnaPairs.length} questions. Press "Start Quiz".`;
         startBtn.disabled = false;
       } else {
-        box.textContent = "No questions found. Ensure you're using an MIT packet PDF.";
+        box.textContent = "No valid questions found. Check PDF format.";
       }
 
     } catch (err) {
-      box.textContent = "Failed to process MIT packet. Open console (F12) for details.";
-      console.error("MIT Packet Error:", err);
+      box.textContent = `Error: ${err.message}`;
+      console.error(err);
     }
   });
 
-  // Quiz controls (keep existing)
+  // Quiz controls
   startBtn.onclick = () => {
     currentIndex = 0;
     showQuestion();
@@ -155,7 +154,7 @@
 
   nextBtn.onclick = () => {
     if (++currentIndex >= qnaPairs.length) {
-      box.textContent = "MIT packet quiz complete!";
+      box.textContent = "Quiz complete!";
       nextBtn.disabled = true;
       return;
     }
@@ -167,11 +166,11 @@
   function showQuestion() {
     const q = qnaPairs[currentIndex];
     box.textContent = q.question;
-    progress.textContent = `MIT Question ${currentIndex + 1}/${qnaPairs.length}`;
+    progress.textContent = `Question ${currentIndex + 1} of ${qnaPairs.length}`;
     input.focus();
   }
 
-  // Enhanced answer checking for MIT format
+  // Answer checking
   input.addEventListener("keypress", (e) => {
     if (e.key === "Enter") checkAnswer();
   });
@@ -180,16 +179,15 @@
     const userAns = input.value.trim().toLowerCase();
     const correctAns = qnaPairs[currentIndex].answer.toLowerCase();
 
-    // MIT-specific answer normalization
-    const normalize = ans => ans.replace(/[^a-z0-9]/g, '');
-    
+    // Flexible matching
     const isCorrect = 
-      normalize(userAns) === normalize(correctAns) ||
-      (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2);
+      userAns === correctAns ||
+      userAns.replace(/[^a-z0-9]/g, "") === correctAns.replace(/[^a-z0-9]/g, "") ||
+      (correctAns.startsWith(userAns.charAt(0)) && userAns.length <= 2;
 
     feedback.textContent = isCorrect 
-      ? "✅ Correct (MIT Standard)" 
-      : `❌ Incorrect. MIT Answer: ${qnaPairs[currentIndex].answer}`;
+      ? "✅ Correct!" 
+      : `❌ Incorrect. The answer is: ${qnaPairs[currentIndex].answer}`;
     feedback.className = isCorrect ? "correct" : "incorrect";
     nextBtn.disabled = false;
   }
