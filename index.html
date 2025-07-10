@@ -69,33 +69,56 @@
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
 
-        // Split by TOSS-UP to get questions
-        const raw = fullText.split(/TOSS[- ]?UP/i).slice(1);
+        // Split text by Toss-up or Bonus questions
+        // The regex includes the question number and type for clearer splitting
+        const blocks = fullText.split(/(\d+\s*(TOSS[- ]?UP|BONUS))/i).filter(s => s.trim() !== "");
 
-        questions = raw
-          .filter(q => /math|physics/i.test(q))
-          .map(q => {
-            // Extract question type, category, and question text before BONUS
-            const tossupMatch = q.match(/([A-Z]+)\s+(Multiple Choice|Short Answer)([\s\S]*?)(?=BONUS|$)/i);
-            // Extract the answer text after ANSWER keyword (stop at new line or end)
-            const answerMatch = q.match(/ANSWER[^:]*:?\s*(.*?)(?=\n|$)/i);
+        // The split creates an array mixing numbers, type labels, and question texts.
+        // We reconstruct the questions by grouping every 3 items: [number, type, text]
+        let parsedQuestions = [];
+        for (let i = 0; i < blocks.length - 2; i += 3) {
+          const number = blocks[i].trim();
+          const typeRaw = blocks[i+1].trim().toUpperCase();
+          const text = blocks[i+2].trim();
 
-            let questionBlock = "";
-            if (tossupMatch) {
-              // Format multiple-choice options on new lines if present (W) X) Y) Z) format)
-              let questionTextRaw = tossupMatch[3].trim()
-                .replace(/\s([WXYZ]\))/g, "\n$1"); // put choices on new lines
-              questionBlock = `${tossupMatch[1]} ${tossupMatch[2]}\n${questionTextRaw}`;
-            } else {
-              questionBlock = q.trim();
-            }
+          // Only keep math or physics questions
+          if (!/math|physics/i.test(text)) continue;
 
-            return {
-              question: questionBlock,
-              answer: answerMatch ? answerMatch[1].trim() : "[No answer found]"
-            };
+          // Extract question type ("TOSS-UP" or "BONUS") properly normalized
+          const qType = typeRaw.includes("BONUS") ? "BONUS" : "TOSS-UP";
+
+          // Extract category and question style
+          const catMatch = text.match(/(MATH|PHYS)\s+(Multiple Choice|Short Answer)/i);
+          const category = catMatch ? catMatch[1].toUpperCase() : "";
+          const style = catMatch ? catMatch[2] : "";
+
+          // Extract the question text before next question or ANSWER
+          // Sometimes questions have extra ANSWER text inside, we'll extract answer separately
+          let questionTextRaw = text;
+
+          // Remove answer section for question display
+          questionTextRaw = questionTextRaw.replace(/ANSWER[^:]*:?.*$/i, "").trim();
+
+          // Format answer text separately
+          const answerMatch = text.match(/ANSWER[^:]*:?\s*([\s\S]*)$/i);
+          let answerTextRaw = answerMatch ? answerMatch[1].trim() : "[No answer found]";
+
+          // For multiple choice, put options on their own lines for clarity (W) X) Y) Z))
+          if (style.toLowerCase() === "multiple choice") {
+            questionTextRaw = questionTextRaw.replace(/\s([WXYZ]\))/g, "\n$1");
+          }
+
+          parsedQuestions.push({
+            number,
+            qType,
+            category,
+            style,
+            question: questionTextRaw,
+            answer: answerTextRaw
           });
+        }
 
+        questions = parsedQuestions;
         if (questions.length === 0) {
           alert("No Math or Physics questions found.");
           return;
@@ -110,7 +133,7 @@
 
     function showQuestion() {
       const q = questions[currentIndex];
-      questionTitle.textContent = `Question ${currentIndex + 1}`;
+      questionTitle.textContent = `Question ${q.number} - ${q.category} ${q.qType.charAt(0).toUpperCase() + q.qType.slice(1).toLowerCase()}`;
       questionText.textContent = q.question;
       answerContent.textContent = q.answer;
       answerText.style.display = "none";
