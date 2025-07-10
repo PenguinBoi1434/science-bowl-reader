@@ -99,25 +99,31 @@
           const block = questionBlocks[i+1];
           
           try {
-            // Match the exact format with variable spacing
-            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+?)(?=\s*(?:TOSS\s+UP|BONUS|MIT Science Bowl|Page \d+))/i);
+            // Match the question number, category and type
+            const headerMatch = block.match(/^(\d+)\)?\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+/i);
+            if (!headerMatch) continue;
             
-            if (!match) continue;
-            
-            const number = match[1];
-            const category = match[2].toUpperCase();
-            const style = match[3];
-            let questionBody = match[4].trim();
-            let answer = match[5].trim();
+            const number = headerMatch[1];
+            const category = headerMatch[2].toUpperCase();
+            const style = headerMatch[3];
             
             // Only keep MATH and PHYSICS questions
             if (!/(MATH|PHYSICS)/i.test(category)) continue;
+            
+            // Find the question body (everything after header until ANSWER:)
+            const questionEnd = block.indexOf("ANSWER:");
+            if (questionEnd === -1) continue;
+            
+            let questionBody = block.substring(headerMatch[0].length, questionEnd).trim();
+            
+            // Find the answer (everything after ANSWER: until next question or end)
+            let answer = block.substring(questionEnd + "ANSWER:".length).trim();
+            answer = answer.split(/(?=TOSS\s+UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
             
             // Clean up question text
             questionBody = questionBody
               .replace(/\s*MIT Science Bowl.*$/i, '')
               .replace(/\s*Page \d+.*$/i, '')
-              .replace(/\s*ANSWER:.*$/i, '')
               .replace(/(\w)-\s+(\w)/g, '$1$2') // Fix hyphenated words
               .trim();
             
@@ -148,7 +154,7 @@
         }
 
         if (questions.length === 0) {
-          alert("No Math/Physics questions found. Please check:\n1. The PDF contains questions marked MATH or PHYSICS\n2. The format matches the sample you provided\n3. Check debug info (click Show Debug Info)");
+          alert("No Math/Physics questions found. Please check the debug info.");
           return;
         }
 
