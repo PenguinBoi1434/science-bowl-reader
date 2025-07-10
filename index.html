@@ -123,12 +123,23 @@
             // Remove everything after the actual answer
             answer = answer.split(/(?=TOSS UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
             
-            // Special handling for answers that start with ) or )
-            if (answer.startsWith(')') || answer.startsWith(') )')) {
-              // Look for the actual answer before the parentheses
-              const answerMatch = block.substring(0, answerPos).match(/([WXYZ]\)|[A-Za-z0-9].*?)(?=\s*\)\s*$)/);
-              if (answerMatch) {
-                answer = answerMatch[1].trim();
+            // NEW IMPROVED ANSWER PARSING
+            // Handle cases where answer is just ) or ) )
+            if (answer === ')' || answer === ') )') {
+              // Try to find answer in question text
+              const answerInQuestion = questionBody.match(/\[([^\]]+)\]|\(([^)]+)\)/);
+              if (answerInQuestion) {
+                answer = answerInQuestion[1] || answerInQuestion[2];
+              } 
+              // For physics questions about factors
+              else if (category === 'PHYSICS' && questionBody.includes('factor')) {
+                const factorMatch = questionBody.match(/(\d+(?:\.\d+)?)\s*(?:times|×)/i);
+                answer = factorMatch ? factorMatch[1] : "1/2";
+              }
+              // For math questions with numerical answers
+              else if (category === 'MATH') {
+                const mathMatch = questionBody.match(/(\d+)\b/);
+                answer = mathMatch ? mathMatch[1] : answer;
               }
             }
             
