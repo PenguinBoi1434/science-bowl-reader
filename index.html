@@ -37,6 +37,9 @@
       padding: 10px;
       background: #f5f5f5;
       border-radius: 5px;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
     }
   </style>
 </head>
@@ -89,8 +92,8 @@
 
         debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
         
-        // Split by TOSS UP or BONUS
-        const questionBlocks = fullText.split(/(TOSS UP|BONUS)/i);
+        // Improved splitting that handles both TOSS UP and BONUS
+        const questionBlocks = fullText.split(/(TOSS UP|BONUS)\s+/i);
         
         questions = [];
         
@@ -99,23 +102,30 @@
           const block = questionBlocks[i+1];
           
           try {
-            // Match the question pattern
-            const match = block.match(/\s*(\d+)\)\s+(PHYSICS|MATH|MATH\s+ENERGY|PHYSICS\s+ENERGY)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+)/i);
+            // More precise regex that stops at next question or page marker
+            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+?)(?=\s*(?:TOSS UP|BONUS|MIT Science Bowl|Page \d+))/i);
             
             if (!match) continue;
             
             const number = match[1];
-            const category = match[2].toUpperCase().replace(/\s+/g, ' ');
+            const category = match[2].toUpperCase();
             const style = match[3];
             let questionBody = match[4].trim();
-            const answer = match[5].trim();
+            let answer = match[5].trim();
+            
+            // Clean up any remaining question text in answer
+            answer = answer.replace(/^[^WXYZ)]+/, '').trim();
             
             // Clean up question body
-            questionBody = questionBody.replace(/\s*ANSWER:.*$/i, '')
-                                     .replace(/MIT Science Bowl Invitational.*$/i, '')
+            questionBody = questionBody.replace(/\s*MIT Science Bowl.*$/i, '')
+                                     .replace(/\s*Page \d+.*$/i, '')
+                                     .replace(/\s*ANSWER:.*$/i, '')
                                      .trim();
             
-            if (!questionBody) continue;
+            if (!questionBody || !answer) continue;
+            
+            // Fix hyphenated words
+            questionBody = questionBody.replace(/(\w+)-\s+(\w+)/g, '$1$2');
             
             // Format multiple choice options
             if (style === "Multiple Choice") {
