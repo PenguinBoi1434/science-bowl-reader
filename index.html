@@ -94,29 +94,25 @@
 
           // Extract the question text before next question or ANSWER
           // Sometimes questions have extra ANSWER text inside, we'll extract answer separately
-          let questionTextRaw = text;
+          let questionTextRaw = text.replace(/ANSWER[\s\S]*/i, "").trim();
 
-          // Remove answer section for question display
-          questionTextRaw = questionTextRaw.replace(/ANSWER[^:]*:?.*$/i, "").trim();
+// Format multiple choice options on new lines
+if (style.toLowerCase() === "multiple choice") {
+  questionTextRaw = questionTextRaw.replace(/\s([WXYZ]\))/g, "\n$1");
+}
 
-          // Format answer text separately
-          const answerMatch = text.match(/ANSWER[^:]*:?\s*([\s\S]*)$/i);
-          let answerTextRaw = answerMatch ? answerMatch[1].trim() : "[No answer found]";
+// Extract answer separately (everything after ANSWER)
+const answerMatch = text.match(/ANSWER[^:]*:?\s*([\s\S]*)$/i);
+let answerTextRaw = answerMatch ? answerMatch[1].trim() : "[No answer found]";
 
-          // For multiple choice, put options on their own lines for clarity (W) X) Y) Z))
-          if (style.toLowerCase() === "multiple choice") {
-            questionTextRaw = questionTextRaw.replace(/\s([WXYZ]\))/g, "\n$1");
-          }
-
-          parsedQuestions.push({
-            number,
-            qType,
-            category,
-            style,
-            question: questionTextRaw,
-            answer: answerTextRaw
-          });
-        }
+parsedQuestions.push({
+  number,
+  qType,
+  category,
+  style,
+  question: questionTextRaw,
+  answer: answerTextRaw
+});
 
         questions = parsedQuestions;
         if (questions.length === 0) {
