@@ -31,7 +31,7 @@
   </style>
 </head>
 <body>
-  <h1>🧠 Science Bowl Practice (Math & Physics)</h1>
+  <h1>Science Bowl Practice (Math & Physics)</h1>
   <input type="file" accept="application/pdf" id="pdfInput" />
   <div class="box" id="questionBox" style="display:none;">
     <h2 id="questionTitle"></h2>
@@ -69,15 +69,29 @@
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
 
+        // Split by TOSS-UP to get questions
         const raw = fullText.split(/TOSS[- ]?UP/i).slice(1);
+
         questions = raw
           .filter(q => /math|physics/i.test(q))
           .map(q => {
-            const tossupMatch = q.match(/([A-Z]+)\s+(Multiple Choice|Short Answer)(.*?)BONUS/s);
-            const answerMatch = q.match(/ANSWER[^:]*:?(.*)/i);
-            let questionBlock = tossupMatch ? `${tossupMatch[1]} ${tossupMatch[2]}\n${tossupMatch[3].trim()}` : q.trim();
+            // Extract question type, category, and question text before BONUS
+            const tossupMatch = q.match(/([A-Z]+)\s+(Multiple Choice|Short Answer)([\s\S]*?)(?=BONUS|$)/i);
+            // Extract the answer text after ANSWER keyword (stop at new line or end)
+            const answerMatch = q.match(/ANSWER[^:]*:?\s*(.*?)(?=\n|$)/i);
+
+            let questionBlock = "";
+            if (tossupMatch) {
+              // Format multiple-choice options on new lines if present (W) X) Y) Z) format)
+              let questionTextRaw = tossupMatch[3].trim()
+                .replace(/\s([WXYZ]\))/g, "\n$1"); // put choices on new lines
+              questionBlock = `${tossupMatch[1]} ${tossupMatch[2]}\n${questionTextRaw}`;
+            } else {
+              questionBlock = q.trim();
+            }
+
             return {
-              question: questionBlock.trim(),
+              question: questionBlock,
               answer: answerMatch ? answerMatch[1].trim() : "[No answer found]"
             };
           });
