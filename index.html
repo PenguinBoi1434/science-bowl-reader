@@ -69,50 +69,46 @@
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
 
-        // Split text by Toss-up or Bonus questions
-        // The regex includes the question number and type for clearer splitting
+        // Split by question blocks, capturing question number and type (TOSS-UP or BONUS)
         const blocks = fullText.split(/(\d+\s*(TOSS[- ]?UP|BONUS))/i).filter(s => s.trim() !== "");
 
-        // The split creates an array mixing numbers, type labels, and question texts.
-        // We reconstruct the questions by grouping every 3 items: [number, type, text]
         let parsedQuestions = [];
         for (let i = 0; i < blocks.length - 2; i += 3) {
           const number = blocks[i].trim();
-          const typeRaw = blocks[i+1].trim().toUpperCase();
-          const text = blocks[i+2].trim();
+          const typeRaw = blocks[i + 1].trim().toUpperCase();
+          const text = blocks[i + 2].trim();
 
-          // Only keep math or physics questions
+          // Filter only math or physics questions
           if (!/math|physics/i.test(text)) continue;
 
-          // Extract question type ("TOSS-UP" or "BONUS") properly normalized
-          const qType = typeRaw.includes("BONUS") ? "BONUS" : "TOSS-UP";
+          const qType = typeRaw.includes("BONUS") ? "Bonus" : "Toss-up";
 
           // Extract category and question style
           const catMatch = text.match(/(MATH|PHYS)\s+(Multiple Choice|Short Answer)/i);
           const category = catMatch ? catMatch[1].toUpperCase() : "";
           const style = catMatch ? catMatch[2] : "";
 
-          // Extract the question text before next question or ANSWER
-          // Sometimes questions have extra ANSWER text inside, we'll extract answer separately
+          // Remove answer text from question display
           let questionTextRaw = text.replace(/ANSWER[\s\S]*/i, "").trim();
 
-// Format multiple choice options on new lines
-if (style.toLowerCase() === "multiple choice") {
-  questionTextRaw = questionTextRaw.replace(/\s([WXYZ]\))/g, "\n$1");
-}
+          // Format multiple choice options to their own lines
+          if (style.toLowerCase() === "multiple choice") {
+            questionTextRaw = questionTextRaw.replace(/\s([WXYZ]\))/g, "\n$1");
+          }
 
-// Extract answer separately (everything after ANSWER)
-const answerMatch = text.match(/ANSWER[^:]*:?\s*([\s\S]*)$/i);
-let answerTextRaw = answerMatch ? answerMatch[1].trim() : "[No answer found]";
+          // Extract answer text
+          const answerMatch = text.match(/ANSWER[^:]*:?\s*([\s\S]*)$/i);
+          const answerTextRaw = answerMatch ? answerMatch[1].trim() : "[No answer found]";
 
-parsedQuestions.push({
-  number,
-  qType,
-  category,
-  style,
-  question: questionTextRaw,
-  answer: answerTextRaw
-});
+          parsedQuestions.push({
+            number,
+            qType,
+            category,
+            style,
+            question: questionTextRaw,
+            answer: answerTextRaw
+          });
+        }
 
         questions = parsedQuestions;
         if (questions.length === 0) {
@@ -129,7 +125,7 @@ parsedQuestions.push({
 
     function showQuestion() {
       const q = questions[currentIndex];
-      questionTitle.textContent = `Question ${q.number} - ${q.category} ${q.qType.charAt(0).toUpperCase() + q.qType.slice(1).toLowerCase()}`;
+      questionTitle.textContent = `Question ${q.number} - ${q.category} ${q.qType}`;
       questionText.textContent = q.question;
       answerContent.textContent = q.answer;
       answerText.style.display = "none";
