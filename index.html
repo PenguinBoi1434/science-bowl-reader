@@ -28,6 +28,9 @@
     pre {
       white-space: pre-wrap;
     }
+    .multiple-choice {
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -35,7 +38,7 @@
   <input type="file" accept="application/pdf" id="pdfInput" />
   <div class="box" id="questionBox" style="display:none;">
     <h2 id="questionTitle"></h2>
-    <pre id="questionText"></pre>
+    <div id="questionText" class="multiple-choice"></div>
     <p id="answerText" style="display:none;"><strong>ANSWER:</strong> <span id="answerContent"></span></p>
     <button id="showAnswerBtn">Show Answer</button>
     <button id="nextBtn">Next Question</button>
@@ -69,52 +72,49 @@
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
 
-        // Split by Toss Up or Bonus headings (with space)
-        const rawBlocks = fullText.split(/TOSS UP|BONUS/i).slice(1);
-
+        // First split by question numbers (like "1) ", "2) ", etc.)
+        const rawQuestions = fullText.split(/\n(?=\d+\))/);
+        
         questions = [];
-
-       // Try this modified parsing approach:
-for (const block of rawBlocks) {
-  // More flexible question matching
-  const questionMatch = block.match(/^\s*(\d+)[\)\.]?\s*(Physics|Math|PHYSICS|MATH)\s*(Multiple Choice|Short Answer|MULTIPLE CHOICE|SHORT ANSWER)[\s\S]*?(?:Question:|$)/i);
-  const answerMatch = block.match(/ANSWER:\s*([\s\S]+?)(?=\s*\d+[\)\.]?\s*(?:Physics|Math|PHYSICS|MATH)|$)/i);
-
-  if (!questionMatch || !answerMatch) continue;
-
-  const number = questionMatch[1];
-  const category = questionMatch[2].toUpperCase();
-  const style = questionMatch[3];
-  let questionBody = block.slice(questionMatch[0].length, answerMatch.index).trim();
-  const answerTextRaw = answerMatch[1].trim();
-
-  // Clean up question body
-  questionBody = questionBody.replace(/ANSWER:.*$/i, '').trim();
-  
-  // Filter categories (case insensitive)
-  if (!/^(MATH|PHYSICS)$/i.test(category)) continue;
-
-  // Format multiple choice options
-  if (/multiple choice/i.test(style)) {
-    questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
-  }
-
-  questions.push({
-    number,
-    category,
-    style,
-    question: questionBody,
-    answer: answerTextRaw
-  });
-}
+        
+        for (const rawQuestion of rawQuestions) {
+          // Match question pattern: number) CATEGORY TYPE question... ANSWER: answer
+          const match = rawQuestion.match(/^(\d+)\)\s+([A-Za-z\s]+)\s+(Multiple Choice|Short Answer)\s+(.*?)\s*ANSWER:\s*([^\n]+)/is);
+          
+          if (!match) continue;
+          
+          const number = match[1];
+          const category = match[2].trim().toUpperCase();
+          const style = match[3];
+          let questionBody = match[4].trim();
+          const answer = match[5].trim();
+          
+          // Only keep MATH and PHYSICS questions
+          if (!/(MATH|PHYSICS)/i.test(category)) continue;
+          
+          // Format multiple choice options
+          if (style === "Multiple Choice") {
+            questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
+          }
+          
+          questions.push({
+            number,
+            category,
+            style,
+            question: questionBody,
+            answer
+          });
+        }
 
         if (questions.length === 0) {
-          alert("No Math or Physics questions found with the expected format.");
+          alert("No Math or Physics questions found. The PDF may have a different format than expected.");
+          console.log("Full PDF text for debugging:", fullText);
           return;
         }
 
         currentIndex = 0;
         showQuestion();
+        questionBox.style.display = "block";
       };
 
       reader.readAsArrayBuffer(file);
@@ -123,20 +123,22 @@ for (const block of rawBlocks) {
     function showQuestion() {
       const q = questions[currentIndex];
       questionTitle.textContent = `Question ${q.number} - ${q.category} ${q.style}`;
-      questionText.textContent = q.question;
+      
+      // Create HTML for question text (preserve line breaks)
+      questionText.innerHTML = q.question.replace(/\n/g, "<br>");
+      
       answerContent.textContent = q.answer;
       answerText.style.display = "none";
-      questionBox.style.display = "block";
     }
 
-    showAnswerBtn.onclick = () => {
+    showAnswerBtn.addEventListener("click", () => {
       answerText.style.display = "block";
-    };
+    });
 
-    nextBtn.onclick = () => {
+    nextBtn.addEventListener("click", () => {
       currentIndex = (currentIndex + 1) % questions.length;
       showQuestion();
-    };
+    });
   </script>
 </body>
 </html>
