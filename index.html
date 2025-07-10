@@ -74,38 +74,39 @@
 
         questions = [];
 
-        for (const block of rawBlocks) {
-          // Match question number, category, type, and rest of text
-          // Example: 1) PHYSICS Multiple Choice ...
-          const questionMatch = block.match(/^\s*(\d+)\)\s*(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)ANSWER:/i);
-          const answerMatch = block.match(/ANSWER:\s*([\s\S]+)/i);
+       // Try this modified parsing approach:
+for (const block of rawBlocks) {
+  // More flexible question matching
+  const questionMatch = block.match(/^\s*(\d+)[\)\.]?\s*(Physics|Math|PHYSICS|MATH)\s*(Multiple Choice|Short Answer|MULTIPLE CHOICE|SHORT ANSWER)[\s\S]*?(?:Question:|$)/i);
+  const answerMatch = block.match(/ANSWER:\s*([\s\S]+?)(?=\s*\d+[\)\.]?\s*(?:Physics|Math|PHYSICS|MATH)|$)/i);
 
-          if (!questionMatch || !answerMatch) continue;
+  if (!questionMatch || !answerMatch) continue;
 
-          const number = questionMatch[1];
-          const category = questionMatch[2].toUpperCase();
-          const style = questionMatch[3];
-          let questionBody = questionMatch[4].trim();
-          const answerTextRaw = answerMatch[1].trim();
+  const number = questionMatch[1];
+  const category = questionMatch[2].toUpperCase();
+  const style = questionMatch[3];
+  let questionBody = block.slice(questionMatch[0].length, answerMatch.index).trim();
+  const answerTextRaw = answerMatch[1].trim();
 
-          // Filter for only math or physics
-          if (!/(MATH|PHYSICS)/i.test(category)) continue;
+  // Clean up question body
+  questionBody = questionBody.replace(/ANSWER:.*$/i, '').trim();
+  
+  // Filter categories (case insensitive)
+  if (!/^(MATH|PHYSICS)$/i.test(category)) continue;
 
-          // For multiple choice, put options on new lines
-          if (style.toLowerCase() === "multiple choice") {
-            questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
-          }
+  // Format multiple choice options
+  if (/multiple choice/i.test(style)) {
+    questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
+  }
 
-          // Figure out if this was toss-up or bonus by checking original split index
-          // But since we lost that, label all as "Question"
-          questions.push({
-            number,
-            category,
-            style,
-            question: questionBody,
-            answer: answerTextRaw
-          });
-        }
+  questions.push({
+    number,
+    category,
+    style,
+    question: questionBody,
+    answer: answerTextRaw
+  });
+}
 
         if (questions.length === 0) {
           alert("No Math or Physics questions found with the expected format.");
