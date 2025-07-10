@@ -78,8 +78,8 @@
         questions = [];
         
         for (const rawQuestion of rawQuestions) {
-          // Match question pattern: number) CATEGORY TYPE question... ANSWER: answer
-          const match = rawQuestion.match(/^(\d+)\)\s+([A-Za-z\s]+)\s+(Multiple Choice|Short Answer)\s+(.*?)\s*ANSWER:\s*([^\n]+)/is);
+          // Enhanced regex to better capture question text before ANSWER:
+          const match = rawQuestion.match(/^(\d+)\)\s+([A-Za-z\s]+)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+)/i);
           
           if (!match) continue;
           
@@ -91,6 +91,12 @@
           
           // Only keep MATH and PHYSICS questions
           if (!/(MATH|PHYSICS)/i.test(category)) continue;
+          
+          // Clean up question body (remove any remaining ANSWER: parts)
+          questionBody = questionBody.replace(/\s*ANSWER:.*$/i, '').trim();
+          
+          // Skip if question body is empty after cleanup
+          if (!questionBody) continue;
           
           // Format multiple choice options
           if (style === "Multiple Choice") {
@@ -124,8 +130,12 @@
       const q = questions[currentIndex];
       questionTitle.textContent = `Question ${q.number} - ${q.category} ${q.style}`;
       
-      // Create HTML for question text (preserve line breaks)
-      questionText.innerHTML = q.question.replace(/\n/g, "<br>");
+      // Create HTML for question text (preserve line breaks and handle empty questions)
+      if (q.question) {
+        questionText.innerHTML = q.question.replace(/\n/g, "<br>");
+      } else {
+        questionText.innerHTML = "Question text not available";
+      }
       
       answerContent.textContent = q.answer;
       answerText.style.display = "none";
