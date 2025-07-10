@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <title>Science Bowl Single Player</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script>
+    // 👇 This line sets the worker properly for GitHub Pages or browser-only use
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  </script>
   <style>
     body {
       font-family: sans-serif;
