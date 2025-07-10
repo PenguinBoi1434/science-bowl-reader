@@ -89,18 +89,18 @@
 
         debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
         
-        // First split by TOSS UP or BONUS
-        const rawQuestions = fullText.split(/(TOSS UP|BONUS)\s+/i);
+        // Split by TOSS UP or BONUS with variable spacing
+        const questionBlocks = fullText.split(/(TOSS\s+UP|BONUS)\s+/i);
         
         questions = [];
         
-        for (let i = 1; i < rawQuestions.length; i += 2) {
-          const type = rawQuestions[i].trim();
-          const block = rawQuestions[i+1];
+        for (let i = 1; i < questionBlocks.length; i += 2) {
+          const type = questionBlocks[i].trim().replace(/\s+/g, ' ');
+          const block = questionBlocks[i+1];
           
           try {
-            // Match the exact question format in your PDF
-            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+)/i);
+            // Match the exact format with variable spacing
+            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+?)(?=\s*(?:TOSS\s+UP|BONUS|MIT Science Bowl|Page \d+))/i);
             
             if (!match) continue;
             
@@ -124,7 +124,7 @@
             // Clean up answer text
             answer = answer
               .replace(/^[^WXYZ)]+/, '') // Remove any leading text before choices
-              .replace(/\s*(?:TOSS UP|BONUS|MIT Science Bowl|Page \d+).*$/i, '')
+              .replace(/\s*(?:TOSS\s+UP|BONUS|MIT Science Bowl|Page \d+).*$/i, '')
               .trim();
             
             if (!questionBody || !answer) continue;
@@ -140,7 +140,7 @@
               style,
               question: questionBody,
               answer,
-              type
+              type: type.includes("TOSS") ? "TOSS UP" : "BONUS"
             });
           } catch (e) {
             console.warn("Error parsing question block:", e, block);
