@@ -89,49 +89,57 @@
 
         debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
         
-        // Split by TOSS UP or BONUS with variable spacing
-        const questionBlocks = fullText.split(/(TOSS\s+UP|BONUS)\s+/i);
+        // First normalize all whitespace
+        fullText = fullText.replace(/\s+/g, ' ');
+        
+        // Split by TOSS UP or BONUS
+        const questionBlocks = fullText.split(/(TOSS UP|BONUS)/i);
         
         questions = [];
         
         for (let i = 1; i < questionBlocks.length; i += 2) {
-          const type = questionBlocks[i].trim().replace(/\s+/g, ' ');
+          const type = questionBlocks[i].trim();
           const block = questionBlocks[i+1];
           
           try {
-            // Match the question number, category and type
-            const headerMatch = block.match(/^(\d+)\)?\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+/i);
+            // Look for the pattern: number) CATEGORY TYPE
+            const headerMatch = block.match(/(\d+)\) (PHYSICS|MATH) (Multiple Choice|Short Answer)/i);
             if (!headerMatch) continue;
             
             const number = headerMatch[1];
             const category = headerMatch[2].toUpperCase();
             const style = headerMatch[3];
             
-            // Only keep MATH and PHYSICS questions
-            if (!/(MATH|PHYSICS)/i.test(category)) continue;
+            // Find the position of ANSWER:
+            const answerPos = block.indexOf("ANSWER:");
+            if (answerPos === -1) continue;
             
-            // Find the question body (everything after header until ANSWER:)
-            const questionEnd = block.indexOf("ANSWER:");
-            if (questionEnd === -1) continue;
+            // Extract question text
+            let questionBody = block.substring(headerMatch[0].length, answerPos).trim();
             
-            let questionBody = block.substring(headerMatch[0].length, questionEnd).trim();
+            // Extract answer text - take everything after ANSWER: until next question or page marker
+            let answer = block.substring(answerPos + "ANSWER:".length).trim();
             
-            // Find the answer (everything after ANSWER: until next question or end)
-            let answer = block.substring(questionEnd + "ANSWER:".length).trim();
-            answer = answer.split(/(?=TOSS\s+UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
+            // Remove everything after the actual answer
+            answer = answer.split(/(?=TOSS UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
             
-            // Clean up question text
-            questionBody = questionBody
-              .replace(/\s*MIT Science Bowl.*$/i, '')
-              .replace(/\s*Page \d+.*$/i, '')
-              .replace(/(\w)-\s+(\w)/g, '$1$2') // Fix hyphenated words
-              .trim();
+            // Special handling for answers that start with ) or )
+            if (answer.startsWith(')') || answer.startsWith(') )')) {
+              // Look for the actual answer before the parentheses
+              const answerMatch = block.substring(0, answerPos).match(/([WXYZ]\)|[A-Za-z0-9].*?)(?=\s*\)\s*$)/);
+              if (answerMatch) {
+                answer = answerMatch[1].trim();
+              }
+            }
             
-            // Clean up answer text
-            answer = answer
-              .replace(/^[^WXYZ)]+/, '') // Remove any leading text before choices
-              .replace(/\s*(?:TOSS\s+UP|BONUS|MIT Science Bowl|Page \d+).*$/i, '')
-              .trim();
+            // Final cleanup
+            questionBody = questionBody.replace(/MIT Science Bowl.*$/, '')
+                                     .replace(/Page \d+.*$/, '')
+                                     .trim();
+            
+            answer = answer.replace(/MIT Science Bowl.*$/, '')
+                          .replace(/Page \d+.*$/, '')
+                          .trim();
             
             if (!questionBody || !answer) continue;
             
@@ -146,7 +154,7 @@
               style,
               question: questionBody,
               answer,
-              type: type.includes("TOSS") ? "TOSS UP" : "BONUS"
+              type
             });
           } catch (e) {
             console.warn("Error parsing question block:", e, block);
