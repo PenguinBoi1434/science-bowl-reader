@@ -31,11 +31,20 @@
     .multiple-choice {
       line-height: 1.6;
     }
+    #debugInfo {
+      display: none;
+      margin-top: 20px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
   <h1>Science Bowl Practice (Math & Physics)</h1>
   <input type="file" accept="application/pdf" id="pdfInput" />
+  <button id="debugBtn">Show Debug Info</button>
+  <div id="debugInfo"></div>
   <div class="box" id="questionBox" style="display:none;">
     <h2 id="questionTitle"></h2>
     <div id="questionText" class="multiple-choice"></div>
@@ -53,8 +62,14 @@
     const answerContent = document.getElementById("answerContent");
     const showAnswerBtn = document.getElementById("showAnswerBtn");
     const nextBtn = document.getElementById("nextBtn");
+    const debugBtn = document.getElementById("debugBtn");
+    const debugInfo = document.getElementById("debugInfo");
 
     let questions = [], currentIndex = 0;
+
+    debugBtn.addEventListener("click", () => {
+      debugInfo.style.display = debugInfo.style.display === "none" ? "block" : "none";
+    });
 
     pdfInput.addEventListener("change", async function () {
       const file = this.files[0];
@@ -72,49 +87,52 @@
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
 
-        // First split by question numbers (like "1) ", "2) ", etc.)
-        const rawQuestions = fullText.split(/\n(?=\d+\))/);
+        debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
+        
+        // More flexible question splitting
+        const questionBlocks = fullText.split(/(?=\d+\)\s+(?:PHYSICS|MATH)\s+(?:Multiple Choice|Short Answer))/i);
         
         questions = [];
         
-        for (const rawQuestion of rawQuestions) {
-          // Enhanced regex to better capture question text before ANSWER:
-          const match = rawQuestion.match(/^(\d+)\)\s+([A-Za-z\s]+)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+)/i);
-          
-          if (!match) continue;
-          
-          const number = match[1];
-          const category = match[2].trim().toUpperCase();
-          const style = match[3];
-          let questionBody = match[4].trim();
-          const answer = match[5].trim();
-          
-          // Only keep MATH and PHYSICS questions
-          if (!/(MATH|PHYSICS)/i.test(category)) continue;
-          
-          // Clean up question body (remove any remaining ANSWER: parts)
-          questionBody = questionBody.replace(/\s*ANSWER:.*$/i, '').trim();
-          
-          // Skip if question body is empty after cleanup
-          if (!questionBody) continue;
-          
-          // Format multiple choice options
-          if (style === "Multiple Choice") {
-            questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
+        for (const block of questionBlocks) {
+          try {
+            // More forgiving regex pattern
+            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+)/i);
+            
+            if (!match) continue;
+            
+            const number = match[1];
+            const category = match[2].toUpperCase();
+            const style = match[3];
+            let questionBody = match[4].trim();
+            const answer = match[5].trim();
+            
+            // Additional cleanup
+            questionBody = questionBody.replace(/\s*ANSWER:.*$/i, '')
+                                     .replace(/^\s*\[\s*\]\s*/, '')
+                                     .trim();
+            
+            if (!questionBody) continue;
+            
+            // Format multiple choice options
+            if (style === "Multiple Choice") {
+              questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
+            }
+            
+            questions.push({
+              number,
+              category,
+              style,
+              question: questionBody,
+              answer
+            });
+          } catch (e) {
+            console.warn("Error parsing question block:", e, block);
           }
-          
-          questions.push({
-            number,
-            category,
-            style,
-            question: questionBody,
-            answer
-          });
         }
 
         if (questions.length === 0) {
-          alert("No Math or Physics questions found. The PDF may have a different format than expected.");
-          console.log("Full PDF text for debugging:", fullText);
+          alert(`No Math/Physics questions found. Found ${questionBlocks.length} potential blocks. Check debug info.`);
           return;
         }
 
@@ -129,14 +147,7 @@
     function showQuestion() {
       const q = questions[currentIndex];
       questionTitle.textContent = `Question ${q.number} - ${q.category} ${q.style}`;
-      
-      // Create HTML for question text (preserve line breaks and handle empty questions)
-      if (q.question) {
-        questionText.innerHTML = q.question.replace(/\n/g, "<br>");
-      } else {
-        questionText.innerHTML = "Question text not available";
-      }
-      
+      questionText.innerHTML = q.question.replace(/\n/g, "<br>");
       answerContent.textContent = q.answer;
       answerText.style.display = "none";
     }
