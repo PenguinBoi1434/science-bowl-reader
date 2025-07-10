@@ -25,9 +25,6 @@
       margin-top: 10px;
       font-size: 16px;
     }
-    pre {
-      white-space: pre-wrap;
-    }
     .multiple-choice {
       line-height: 1.6;
     }
@@ -92,18 +89,18 @@
 
         debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
         
-        // Improved splitting that handles both TOSS UP and BONUS
-        const questionBlocks = fullText.split(/(TOSS UP|BONUS)\s+/i);
+        // First split by TOSS UP or BONUS
+        const rawQuestions = fullText.split(/(TOSS UP|BONUS)\s+/i);
         
         questions = [];
         
-        for (let i = 1; i < questionBlocks.length; i += 2) {
-          const type = questionBlocks[i].trim();
-          const block = questionBlocks[i+1];
+        for (let i = 1; i < rawQuestions.length; i += 2) {
+          const type = rawQuestions[i].trim();
+          const block = rawQuestions[i+1];
           
           try {
-            // More precise regex that stops at next question or page marker
-            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+?)(?=\s*(?:TOSS UP|BONUS|MIT Science Bowl|Page \d+))/i);
+            // Match the exact question format in your PDF
+            const match = block.match(/(\d+)\)\s+(PHYSICS|MATH)\s+(Multiple Choice|Short Answer)\s+([\s\S]*?)\s*ANSWER:\s*([^\n]+)/i);
             
             if (!match) continue;
             
@@ -113,19 +110,24 @@
             let questionBody = match[4].trim();
             let answer = match[5].trim();
             
-            // Clean up any remaining question text in answer
-            answer = answer.replace(/^[^WXYZ)]+/, '').trim();
+            // Only keep MATH and PHYSICS questions
+            if (!/(MATH|PHYSICS)/i.test(category)) continue;
             
-            // Clean up question body
-            questionBody = questionBody.replace(/\s*MIT Science Bowl.*$/i, '')
-                                     .replace(/\s*Page \d+.*$/i, '')
-                                     .replace(/\s*ANSWER:.*$/i, '')
-                                     .trim();
+            // Clean up question text
+            questionBody = questionBody
+              .replace(/\s*MIT Science Bowl.*$/i, '')
+              .replace(/\s*Page \d+.*$/i, '')
+              .replace(/\s*ANSWER:.*$/i, '')
+              .replace(/(\w)-\s+(\w)/g, '$1$2') // Fix hyphenated words
+              .trim();
+            
+            // Clean up answer text
+            answer = answer
+              .replace(/^[^WXYZ)]+/, '') // Remove any leading text before choices
+              .replace(/\s*(?:TOSS UP|BONUS|MIT Science Bowl|Page \d+).*$/i, '')
+              .trim();
             
             if (!questionBody || !answer) continue;
-            
-            // Fix hyphenated words
-            questionBody = questionBody.replace(/(\w+)-\s+(\w+)/g, '$1$2');
             
             // Format multiple choice options
             if (style === "Multiple Choice") {
@@ -146,7 +148,7 @@
         }
 
         if (questions.length === 0) {
-          alert("No Math/Physics questions found. Check debug info to see PDF format.");
+          alert("No Math/Physics questions found. Please check:\n1. The PDF contains questions marked MATH or PHYSICS\n2. The format matches the sample you provided\n3. Check debug info (click Show Debug Info)");
           return;
         }
 
