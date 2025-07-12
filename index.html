@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Science Bowl Single Player</title>
+  <title>Science Bowl Reader (Auto-Type)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -24,8 +24,14 @@
       padding: 10px 20px;
       margin-top: 10px;
       font-size: 16px;
+      cursor: pointer;
     }
-    .multiple-choice {
+    #questionDisplay {
+      border: 1px solid #eee;
+      padding: 15px;
+      border-radius: 5px;
+      background: #f9f9f9;
+      min-height: 200px;
       line-height: 1.6;
     }
     #debugInfo {
@@ -38,45 +44,176 @@
       max-height: 300px;
       overflow-y: auto;
     }
+    #ttsControls {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f0f8ff;
+      border-radius: 5px;
+    }
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: black;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+    .highlight {
+      background-color: yellow;
+      transition: background-color 0.3s;
+    }
   </style>
 </head>
 <body>
-  <h1>Science Bowl Practice (Math & Physics)</h1>
+  <h1>Science Bowl Practice (Auto-Type)</h1>
   <input type="file" accept="application/pdf" id="pdfInput" />
   <button id="debugBtn">Show Debug Info</button>
   <div id="debugInfo"></div>
   <div class="box" id="questionBox" style="display:none;">
     <h2 id="questionTitle"></h2>
-    <div id="questionText" class="multiple-choice"></div>
+    <div id="questionDisplay"></div>
     <p id="answerText" style="display:none;"><strong>ANSWER:</strong> <span id="answerContent"></span></p>
-    <button id="showAnswerBtn">Show Answer</button>
-    <button id="nextBtn">Next Question</button>
+    
+    <div id="ttsControls">
+      <button id="readAloudBtn">Read Aloud</button>
+      <button id="pauseResumeBtn" disabled>Pause</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="nextBtn">Next Question</button>
+      <button id="showAnswerBtn">Show Answer</button>
+      <label>Speed: <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1"></label>
+    </div>
   </div>
 
   <script>
-    const pdfInput = document.getElementById("pdfInput");
-    const questionBox = document.getElementById("questionBox");
-    const questionTitle = document.getElementById("questionTitle");
-    const questionText = document.getElementById("questionText");
-    const answerText = document.getElementById("answerText");
-    const answerContent = document.getElementById("answerContent");
-    const showAnswerBtn = document.getElementById("showAnswerBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const debugBtn = document.getElementById("debugBtn");
-    const debugInfo = document.getElementById("debugInfo");
+    // DOM Elements
+    const elements = {
+      pdfInput: document.getElementById("pdfInput"),
+      questionBox: document.getElementById("questionBox"),
+      questionTitle: document.getElementById("questionTitle"),
+      questionDisplay: document.getElementById("questionDisplay"),
+      answerText: document.getElementById("answerText"),
+      answerContent: document.getElementById("answerContent"),
+      showAnswerBtn: document.getElementById("showAnswerBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      debugBtn: document.getElementById("debugBtn"),
+      debugInfo: document.getElementById("debugInfo"),
+      readAloudBtn: document.getElementById("readAloudBtn"),
+      pauseResumeBtn: document.getElementById("pauseResumeBtn"),
+      stopBtn: document.getElementById("stopBtn"),
+      speedControl: document.getElementById("speedControl")
+    };
 
-    let questions = [], currentIndex = 0;
+    // State variables
+    let state = {
+      questions: [],
+      currentIndex: 0,
+      synth: window.speechSynthesis,
+      currentUtterance: null,
+      typewriterInterval: null,
+      isPaused: false,
+      currentCharIndex: 0,
+      fullQuestionText: ""
+    };
 
-    debugBtn.addEventListener("click", () => {
-      debugInfo.style.display = debugInfo.style.display === "none" ? "block" : "none";
+    // Initialize
+    elements.debugBtn.addEventListener("click", () => {
+      elements.debugInfo.style.display = elements.debugInfo.style.display === "none" ? "block" : "none";
     });
 
-    pdfInput.addEventListener("change", async function () {
+    // TTS Controls
+    elements.readAloudBtn.addEventListener("click", readAloud);
+    elements.pauseResumeBtn.addEventListener("click", togglePause);
+    elements.stopBtn.addEventListener("click", stopAll);
+    elements.speedControl.addEventListener("input", updateSpeechRate);
+
+    function updateSpeechRate() {
+      if (state.currentUtterance) {
+        state.currentUtterance.rate = elements.speedControl.value;
+      }
+    }
+
+    function togglePause() {
+      if (state.isPaused) {
+        state.synth.resume();
+        if (state.typewriterInterval === null) {
+          continueTypewriter();
+        }
+        elements.pauseResumeBtn.textContent = "Pause";
+        state.isPaused = false;
+      } else {
+        state.synth.pause();
+        clearInterval(state.typewriterInterval);
+        state.typewriterInterval = null;
+        elements.pauseResumeBtn.textContent = "Resume";
+        state.isPaused = true;
+      }
+    }
+
+    function stopAll() {
+      state.synth.cancel();
+      clearInterval(state.typewriterInterval);
+      state.typewriterInterval = null;
+      elements.pauseResumeBtn.disabled = true;
+      elements.stopBtn.disabled = true;
+      elements.questionDisplay.innerHTML = state.fullQuestionText; // Show full question
+    }
+
+    function readAloud() {
+      stopAll();
+      elements.pauseResumeBtn.disabled = false;
+      elements.stopBtn.disabled = false;
+      
+      state.currentUtterance = new SpeechSynthesisUtterance(
+        state.questions[state.currentIndex].question.replace(/<br>/g, " ")
+      );
+      state.currentUtterance.rate = elements.speedControl.value;
+      state.synth.speak(state.currentUtterance);
+    }
+
+    function startTypewriterEffect() {
+      stopAll(); // Clear any existing effects
+      state.currentCharIndex = 0;
+      elements.questionDisplay.innerHTML = '<span class="cursor"></span>';
+      
+      state.typewriterInterval = setInterval(() => {
+        if (state.currentCharIndex < state.fullQuestionText.length) {
+          // Get next character (handling HTML tags specially)
+          let nextChar = state.fullQuestionText[state.currentCharIndex];
+          
+          // If we're at the start of a <br> tag, add the whole tag at once
+          if (state.fullQuestionText.substr(state.currentCharIndex, 4) === "<br>") {
+            nextChar = "<br>";
+            state.currentCharIndex += 3; // Skip ahead
+          }
+          
+          elements.questionDisplay.innerHTML = 
+            state.fullQuestionText.substring(0, state.currentCharIndex + 1) + 
+            '<span class="cursor"></span>';
+          
+          state.currentCharIndex++;
+          
+          // Scroll to keep the cursor visible
+          const cursor = document.querySelector(".cursor");
+          if (cursor) {
+            cursor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        } else {
+          clearInterval(state.typewriterInterval);
+          elements.questionDisplay.innerHTML = state.fullQuestionText; // Remove cursor when done
+        }
+      }, 30); // Adjust typing speed here (lower = faster)
+    }
+
+    // PDF Processing
+    elements.pdfInput.addEventListener("change", async function() {
       const file = this.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = async function () {
+      reader.onload = async function() {
         const typedArray = new Uint8Array(this.result);
         const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
 
@@ -87,22 +224,17 @@
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
 
-        debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
-        
-        // First normalize all whitespace
+        elements.debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
         fullText = fullText.replace(/\s+/g, ' ');
-        
-        // Split by TOSS UP or BONUS
         const questionBlocks = fullText.split(/(TOSS UP|BONUS)/i);
         
-        questions = [];
+        state.questions = [];
         
         for (let i = 1; i < questionBlocks.length; i += 2) {
           const type = questionBlocks[i].trim();
           const block = questionBlocks[i+1];
           
           try {
-            // Look for the pattern: number) CATEGORY TYPE
             const headerMatch = block.match(/(\d+)\) (PHYSICS|MATH) (Multiple Choice|Short Answer)/i);
             if (!headerMatch) continue;
             
@@ -110,40 +242,28 @@
             const category = headerMatch[2].toUpperCase();
             const style = headerMatch[3];
             
-            // Find the position of ANSWER:
             const answerPos = block.indexOf("ANSWER:");
             if (answerPos === -1) continue;
             
-            // Extract question text
             let questionBody = block.substring(headerMatch[0].length, answerPos).trim();
-            
-            // Extract answer text - take everything after ANSWER: until next question or page marker
             let answer = block.substring(answerPos + "ANSWER:".length).trim();
-            
-            // Remove everything after the actual answer
             answer = answer.split(/(?=TOSS UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
             
-            // NEW IMPROVED ANSWER PARSING
-            // Handle cases where answer is just ) or ) )
             if (answer === ')' || answer === ') )') {
-              // Try to find answer in question text
               const answerInQuestion = questionBody.match(/\[([^\]]+)\]|\(([^)]+)\)/);
               if (answerInQuestion) {
                 answer = answerInQuestion[1] || answerInQuestion[2];
               } 
-              // For physics questions about factors
               else if (category === 'PHYSICS' && questionBody.includes('factor')) {
                 const factorMatch = questionBody.match(/(\d+(?:\.\d+)?)\s*(?:times|×)/i);
                 answer = factorMatch ? factorMatch[1] : "1/2";
               }
-              // For math questions with numerical answers
               else if (category === 'MATH') {
                 const mathMatch = questionBody.match(/(\d+)\b/);
                 answer = mathMatch ? mathMatch[1] : answer;
               }
             }
             
-            // Final cleanup
             questionBody = questionBody.replace(/MIT Science Bowl.*$/, '')
                                      .replace(/Page \d+.*$/, '')
                                      .trim();
@@ -154,12 +274,11 @@
             
             if (!questionBody || !answer) continue;
             
-            // Format multiple choice options
             if (style === "Multiple Choice") {
               questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
             }
             
-            questions.push({
+            state.questions.push({
               number,
               category,
               style,
@@ -172,33 +291,42 @@
           }
         }
 
-        if (questions.length === 0) {
+        if (state.questions.length === 0) {
           alert("No Math/Physics questions found. Please check the debug info.");
           return;
         }
 
-        currentIndex = 0;
+        state.currentIndex = 0;
         showQuestion();
-        questionBox.style.display = "block";
+        elements.questionBox.style.display = "block";
       };
 
       reader.readAsArrayBuffer(file);
     });
 
     function showQuestion() {
-      const q = questions[currentIndex];
-      questionTitle.textContent = `${q.type} ${q.number} - ${q.category} ${q.style}`;
-      questionText.innerHTML = q.question.replace(/\n/g, "<br>");
-      answerContent.textContent = q.answer;
-      answerText.style.display = "none";
+      const q = state.questions[state.currentIndex];
+      elements.questionTitle.textContent = `${q.type} ${q.number} - ${q.category} ${q.style}`;
+      state.fullQuestionText = q.question.replace(/\n/g, "<br>");
+      elements.answerContent.textContent = q.answer;
+      elements.answerText.style.display = "none";
+      
+      // Start typewriter effect immediately
+      startTypewriterEffect();
     }
 
-    showAnswerBtn.addEventListener("click", () => {
-      answerText.style.display = "block";
+    function continueTypewriter() {
+      if (state.currentCharIndex < state.fullQuestionText.length) {
+        startTypewriterEffect();
+      }
+    }
+
+    elements.showAnswerBtn.addEventListener("click", () => {
+      elements.answerText.style.display = "block";
     });
 
-    nextBtn.addEventListener("click", () => {
-      currentIndex = (currentIndex + 1) % questions.length;
+    elements.nextBtn.addEventListener("click", () => {
+      state.currentIndex = (state.currentIndex + 1) % state.questions.length;
       showQuestion();
     });
   </script>
