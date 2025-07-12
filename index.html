@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Science Bowl Reader (Auto-Type)</title>
+  <title>Science Bowl Reader (Buzzer Mode)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -61,28 +61,57 @@
     @keyframes blink {
       50% { opacity: 0; }
     }
-    .highlight {
-      background-color: yellow;
-      transition: background-color 0.3s;
+    #answerInput {
+      margin-top: 10px;
+      padding: 8px;
+      width: 100%;
+      font-size: 16px;
+    }
+    #submitAnswer {
+      margin-top: 5px;
+    }
+    #resultMessage {
+      margin-top: 10px;
+      font-weight: bold;
+      min-height: 20px;
+    }
+    .correct {
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+    #buzzerStatus {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 10px;
+      background: #ffcccc;
+      border-radius: 5px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>Science Bowl Practice (Auto-Type)</h1>
+  <div id="buzzerStatus">BUZZED!</div>
+  <h1>Science Bowl Practice (Buzzer Mode)</h1>
   <input type="file" accept="application/pdf" id="pdfInput" />
   <button id="debugBtn">Show Debug Info</button>
   <div id="debugInfo"></div>
   <div class="box" id="questionBox" style="display:none;">
     <h2 id="questionTitle"></h2>
     <div id="questionDisplay"></div>
-    <p id="answerText" style="display:none;"><strong>ANSWER:</strong> <span id="answerContent"></span></p>
+    
+    <div id="answerSection" style="display:none;">
+      <input type="text" id="answerInput" placeholder="Type your answer..." />
+      <button id="submitAnswer">Submit Answer</button>
+      <div id="resultMessage"></div>
+      <p><strong>Correct Answer:</strong> <span id="correctAnswer"></span></p>
+    </div>
     
     <div id="ttsControls">
       <button id="readAloudBtn">Read Aloud</button>
-      <button id="pauseResumeBtn" disabled>Pause</button>
-      <button id="stopBtn" disabled>Stop</button>
       <button id="nextBtn">Next Question</button>
-      <button id="showAnswerBtn">Show Answer</button>
       <label>Speed: <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1"></label>
     </div>
   </div>
@@ -94,16 +123,17 @@
       questionBox: document.getElementById("questionBox"),
       questionTitle: document.getElementById("questionTitle"),
       questionDisplay: document.getElementById("questionDisplay"),
-      answerText: document.getElementById("answerText"),
-      answerContent: document.getElementById("answerContent"),
-      showAnswerBtn: document.getElementById("showAnswerBtn"),
-      nextBtn: document.getElementById("nextBtn"),
       debugBtn: document.getElementById("debugBtn"),
       debugInfo: document.getElementById("debugInfo"),
       readAloudBtn: document.getElementById("readAloudBtn"),
-      pauseResumeBtn: document.getElementById("pauseResumeBtn"),
-      stopBtn: document.getElementById("stopBtn"),
-      speedControl: document.getElementById("speedControl")
+      nextBtn: document.getElementById("nextBtn"),
+      speedControl: document.getElementById("speedControl"),
+      answerSection: document.getElementById("answerSection"),
+      answerInput: document.getElementById("answerInput"),
+      submitAnswer: document.getElementById("submitAnswer"),
+      resultMessage: document.getElementById("resultMessage"),
+      correctAnswer: document.getElementById("correctAnswer"),
+      buzzerStatus: document.getElementById("buzzerStatus")
     };
 
     // State variables
@@ -113,9 +143,8 @@
       synth: window.speechSynthesis,
       currentUtterance: null,
       typewriterInterval: null,
-      isPaused: false,
-      currentCharIndex: 0,
-      fullQuestionText: ""
+      fullQuestionText: "",
+      isBuzzed: false
     };
 
     // Initialize
@@ -123,11 +152,24 @@
       elements.debugInfo.style.display = elements.debugInfo.style.display === "none" ? "block" : "none";
     });
 
-    // TTS Controls
+    // Event listeners
     elements.readAloudBtn.addEventListener("click", readAloud);
-    elements.pauseResumeBtn.addEventListener("click", togglePause);
-    elements.stopBtn.addEventListener("click", stopAll);
+    elements.nextBtn.addEventListener("click", nextQuestion);
     elements.speedControl.addEventListener("input", updateSpeechRate);
+    elements.submitAnswer.addEventListener("click", checkAnswer);
+    elements.answerInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+      if (e.key === " " && !state.isBuzzed) { // Spacebar to buzz
+        e.preventDefault();
+        buzzIn();
+      } else if (e.key.toLowerCase() === "n") { // N for next question
+        nextQuestion();
+      }
+    });
 
     function updateSpeechRate() {
       if (state.currentUtterance) {
@@ -135,36 +177,38 @@
       }
     }
 
-    function togglePause() {
-      if (state.isPaused) {
-        state.synth.resume();
-        if (state.typewriterInterval === null) {
-          continueTypewriter();
-        }
-        elements.pauseResumeBtn.textContent = "Pause";
-        state.isPaused = false;
-      } else {
-        state.synth.pause();
-        clearInterval(state.typewriterInterval);
-        state.typewriterInterval = null;
-        elements.pauseResumeBtn.textContent = "Resume";
-        state.isPaused = true;
-      }
+    function buzzIn() {
+      if (state.isBuzzed) return;
+      
+      state.isBuzzed = true;
+      elements.buzzerStatus.style.display = "block";
+      
+      // Stop any ongoing reading/typing
+      if (state.synth.speaking) state.synth.cancel();
+      clearInterval(state.typewriterInterval);
+      
+      // Show full question immediately
+      elements.questionDisplay.innerHTML = state.fullQuestionText;
+      
+      // Show answer input
+      elements.answerSection.style.display = "block";
+      elements.answerInput.focus();
     }
 
-    function stopAll() {
-      state.synth.cancel();
-      clearInterval(state.typewriterInterval);
-      state.typewriterInterval = null;
-      elements.pauseResumeBtn.disabled = true;
-      elements.stopBtn.disabled = true;
-      elements.questionDisplay.innerHTML = state.fullQuestionText; // Show full question
+    function checkAnswer() {
+      const userAnswer = elements.answerInput.value.trim().toLowerCase();
+      const correctAnswer = state.questions[state.currentIndex].answer.trim().toLowerCase();
+      
+      // Simple answer comparison (could be enhanced for more flexibility)
+      const isCorrect = userAnswer === correctAnswer;
+      
+      elements.resultMessage.textContent = isCorrect ? "Correct!" : "Incorrect";
+      elements.resultMessage.className = isCorrect ? "correct" : "incorrect";
+      elements.correctAnswer.textContent = state.questions[state.currentIndex].answer;
     }
 
     function readAloud() {
-      stopAll();
-      elements.pauseResumeBtn.disabled = false;
-      elements.stopBtn.disabled = false;
+      if (state.synth.speaking) state.synth.cancel();
       
       state.currentUtterance = new SpeechSynthesisUtterance(
         state.questions[state.currentIndex].question.replace(/<br>/g, " ")
@@ -174,26 +218,33 @@
     }
 
     function startTypewriterEffect() {
-      stopAll(); // Clear any existing effects
-      state.currentCharIndex = 0;
+      clearInterval(state.typewriterInterval);
+      state.isBuzzed = false;
+      elements.buzzerStatus.style.display = "none";
+      elements.answerSection.style.display = "none";
+      elements.answerInput.value = "";
+      elements.resultMessage.textContent = "";
+      elements.correctAnswer.textContent = "";
+      
+      let currentCharIndex = 0;
       elements.questionDisplay.innerHTML = '<span class="cursor"></span>';
       
       state.typewriterInterval = setInterval(() => {
-        if (state.currentCharIndex < state.fullQuestionText.length) {
+        if (currentCharIndex < state.fullQuestionText.length && !state.isBuzzed) {
           // Get next character (handling HTML tags specially)
-          let nextChar = state.fullQuestionText[state.currentCharIndex];
+          let nextChar = state.fullQuestionText[currentCharIndex];
           
           // If we're at the start of a <br> tag, add the whole tag at once
-          if (state.fullQuestionText.substr(state.currentCharIndex, 4) === "<br>") {
+          if (state.fullQuestionText.substr(currentCharIndex, 4) === "<br>") {
             nextChar = "<br>";
-            state.currentCharIndex += 3; // Skip ahead
+            currentCharIndex += 3; // Skip ahead
           }
           
           elements.questionDisplay.innerHTML = 
-            state.fullQuestionText.substring(0, state.currentCharIndex + 1) + 
+            state.fullQuestionText.substring(0, currentCharIndex + 1) + 
             '<span class="cursor"></span>';
           
-          state.currentCharIndex++;
+          currentCharIndex++;
           
           // Scroll to keep the cursor visible
           const cursor = document.querySelector(".cursor");
@@ -308,27 +359,15 @@
       const q = state.questions[state.currentIndex];
       elements.questionTitle.textContent = `${q.type} ${q.number} - ${q.category} ${q.style}`;
       state.fullQuestionText = q.question.replace(/\n/g, "<br>");
-      elements.answerContent.textContent = q.answer;
-      elements.answerText.style.display = "none";
       
       // Start typewriter effect immediately
       startTypewriterEffect();
     }
 
-    function continueTypewriter() {
-      if (state.currentCharIndex < state.fullQuestionText.length) {
-        startTypewriterEffect();
-      }
-    }
-
-    elements.showAnswerBtn.addEventListener("click", () => {
-      elements.answerText.style.display = "block";
-    });
-
-    elements.nextBtn.addEventListener("click", () => {
+    function nextQuestion() {
       state.currentIndex = (state.currentIndex + 1) % state.questions.length;
       showQuestion();
-    });
+    }
   </script>
 </body>
 </html>
