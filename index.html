@@ -196,11 +196,22 @@
     }
 
     function checkAnswer() {
-      const userAnswer = elements.answerInput.value.trim().toLowerCase();
-      const correctAnswer = state.questions[state.currentIndex].answer.trim().toLowerCase();
+      const userAnswer = elements.answerInput.value.trim().toUpperCase();
+      const correctAnswer = state.questions[state.currentIndex].answer.trim().toUpperCase();
+      const isMultipleChoice = state.questions[state.currentIndex].style === "Multiple Choice";
       
-      // Simple answer comparison (could be enhanced for more flexibility)
-      const isCorrect = userAnswer === correctAnswer;
+      let isCorrect = false;
+      
+      if (isMultipleChoice) {
+        // For multiple choice, accept either just the letter (W/X/Y/Z) or full answer
+        const correctLetter = correctAnswer.match(/^[WXYZ]/)?.[0];
+        isCorrect = correctLetter 
+          ? (userAnswer === correctLetter || userAnswer === correctAnswer)
+          : (userAnswer === correctAnswer);
+      } else {
+        // For short answer, require exact match
+        isCorrect = userAnswer === correctAnswer;
+      }
       
       elements.resultMessage.textContent = isCorrect ? "Correct!" : "Incorrect";
       elements.resultMessage.className = isCorrect ? "correct" : "incorrect";
