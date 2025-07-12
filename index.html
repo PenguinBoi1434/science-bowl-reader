@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Science Bowl Reader (Buzzer Mode)</title>
+  <title>Science Bowl Reader (Timed Mode)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -90,11 +90,22 @@
       border-radius: 5px;
       display: none;
     }
+    #timer {
+      position: fixed;
+      top: 50px;
+      right: 10px;
+      padding: 10px;
+      background: #ffcc00;
+      border-radius: 5px;
+      font-weight: bold;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div id="buzzerStatus">BUZZED!</div>
-  <h1>Science Bowl Practice (Buzzer Mode)</h1>
+  <div id="timer">5</div>
+  <h1>Science Bowl Practice (Timed Mode)</h1>
   <input type="file" accept="application/pdf" id="pdfInput" />
   <button id="debugBtn">Show Debug Info</button>
   <div id="debugInfo"></div>
@@ -133,7 +144,8 @@
       submitAnswer: document.getElementById("submitAnswer"),
       resultMessage: document.getElementById("resultMessage"),
       correctAnswer: document.getElementById("correctAnswer"),
-      buzzerStatus: document.getElementById("buzzerStatus")
+      buzzerStatus: document.getElementById("buzzerStatus"),
+      timer: document.getElementById("timer")
     };
 
     // State variables
@@ -144,7 +156,9 @@
       currentUtterance: null,
       typewriterInterval: null,
       fullQuestionText: "",
-      isBuzzed: false
+      isBuzzed: false,
+      timerInterval: null,
+      timeLeft: 0
     };
 
     // Initialize
@@ -182,6 +196,7 @@
       
       state.isBuzzed = true;
       elements.buzzerStatus.style.display = "block";
+      stopTimer();
       
       // Stop any ongoing reading/typing
       if (state.synth.speaking) state.synth.cancel();
@@ -218,6 +233,32 @@
       elements.correctAnswer.textContent = state.questions[state.currentIndex].answer;
     }
 
+    function startTimer() {
+      // Only start timer for TOSS-UP questions
+      const isTossUp = state.questions[state.currentIndex].type === "TOSS UP";
+      if (!isTossUp) return;
+      
+      stopTimer();
+      state.timeLeft = 5;
+      elements.timer.textContent = state.timeLeft;
+      elements.timer.style.display = "block";
+      
+      state.timerInterval = setInterval(() => {
+        state.timeLeft--;
+        elements.timer.textContent = state.timeLeft;
+        
+        if (state.timeLeft <= 0) {
+          stopTimer();
+          buzzIn(); // Auto-buzz when time runs out
+        }
+      }, 1000);
+    }
+    
+    function stopTimer() {
+      clearInterval(state.timerInterval);
+      elements.timer.style.display = "none";
+    }
+
     function readAloud() {
       if (state.synth.speaking) state.synth.cancel();
       
@@ -225,6 +266,12 @@
         state.questions[state.currentIndex].question.replace(/<br>/g, " ")
       );
       state.currentUtterance.rate = elements.speedControl.value;
+      
+      // Start timer when speech ends (for TOSS-UP questions)
+      state.currentUtterance.onend = () => {
+        startTimer();
+      };
+      
       state.synth.speak(state.currentUtterance);
     }
 
@@ -236,6 +283,7 @@
       elements.answerInput.value = "";
       elements.resultMessage.textContent = "";
       elements.correctAnswer.textContent = "";
+      stopTimer();
       
       let currentCharIndex = 0;
       elements.questionDisplay.innerHTML = '<span class="cursor"></span>';
