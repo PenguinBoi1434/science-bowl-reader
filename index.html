@@ -128,7 +128,6 @@
   </div>
 
   <script>
-    // DOM Elements
     const elements = {
       pdfInput: document.getElementById("pdfInput"),
       questionBox: document.getElementById("questionBox"),
@@ -148,7 +147,6 @@
       timer: document.getElementById("timer")
     };
 
-    // State variables
     let state = {
       questions: [],
       currentIndex: 0,
@@ -161,12 +159,10 @@
       timeLeft: 0
     };
 
-    // Initialize
     elements.debugBtn.addEventListener("click", () => {
       elements.debugInfo.style.display = elements.debugInfo.style.display === "none" ? "block" : "none";
     });
 
-    // Event listeners
     elements.readAloudBtn.addEventListener("click", readAloud);
     elements.nextBtn.addEventListener("click", nextQuestion);
     elements.speedControl.addEventListener("input", updateSpeechRate);
@@ -175,12 +171,11 @@
       if (e.key === "Enter") checkAnswer();
     });
 
-    // Keyboard shortcuts
     document.addEventListener("keydown", (e) => {
-      if (e.key === " " && !state.isBuzzed) { // Spacebar to buzz
+      if (e.key === " " && !state.isBuzzed) {
         e.preventDefault();
         buzzIn();
-      } else if (e.key.toLowerCase() === "n") { // N for next question
+      } else if (e.key.toLowerCase() === "n") {
         nextQuestion();
       }
     });
@@ -193,19 +188,12 @@
 
     function buzzIn() {
       if (state.isBuzzed) return;
-      
       state.isBuzzed = true;
       elements.buzzerStatus.style.display = "block";
       stopTimer();
-      
-      // Stop any ongoing reading/typing
       if (state.synth.speaking) state.synth.cancel();
       clearInterval(state.typewriterInterval);
-      
-      // Show full question immediately
       elements.questionDisplay.innerHTML = state.fullQuestionText;
-      
-      // Show answer input
       elements.answerSection.style.display = "block";
       elements.answerInput.focus();
     }
@@ -214,46 +202,37 @@
       const userAnswer = elements.answerInput.value.trim().toUpperCase();
       const correctAnswer = state.questions[state.currentIndex].answer.trim().toUpperCase();
       const isMultipleChoice = state.questions[state.currentIndex].style === "Multiple Choice";
-      
       let isCorrect = false;
-      
       if (isMultipleChoice) {
-        // For multiple choice, accept either just the letter (W/X/Y/Z) or full answer
         const correctLetter = correctAnswer.match(/^[WXYZ]/)?.[0];
         isCorrect = correctLetter 
           ? (userAnswer === correctLetter || userAnswer === correctAnswer)
           : (userAnswer === correctAnswer);
       } else {
-        // For short answer, require exact match
         isCorrect = userAnswer === correctAnswer;
       }
-      
       elements.resultMessage.textContent = isCorrect ? "Correct!" : "Incorrect";
       elements.resultMessage.className = isCorrect ? "correct" : "incorrect";
       elements.correctAnswer.textContent = state.questions[state.currentIndex].answer;
     }
 
     function startTimer() {
-      // Only start timer for TOSS-UP questions
       const isTossUp = state.questions[state.currentIndex].type === "TOSS UP";
       if (!isTossUp) return;
-      
       stopTimer();
       state.timeLeft = 5;
       elements.timer.textContent = state.timeLeft;
       elements.timer.style.display = "block";
-      
       state.timerInterval = setInterval(() => {
         state.timeLeft--;
         elements.timer.textContent = state.timeLeft;
-        
         if (state.timeLeft <= 0) {
           stopTimer();
-          buzzIn(); // Auto-buzz when time runs out
+          buzzIn();
         }
       }, 1000);
     }
-    
+
     function stopTimer() {
       clearInterval(state.timerInterval);
       elements.timer.style.display = "none";
@@ -261,17 +240,13 @@
 
     function readAloud() {
       if (state.synth.speaking) state.synth.cancel();
-      
       state.currentUtterance = new SpeechSynthesisUtterance(
         state.questions[state.currentIndex].question.replace(/<br>/g, " ")
       );
       state.currentUtterance.rate = elements.speedControl.value;
-      
-      // Start timer when speech ends (for TOSS-UP questions)
       state.currentUtterance.onend = () => {
         startTimer();
       };
-      
       state.synth.speak(state.currentUtterance);
     }
 
@@ -287,107 +262,85 @@
       
       let currentCharIndex = 0;
       elements.questionDisplay.innerHTML = '<span class="cursor"></span>';
-      
+
       state.typewriterInterval = setInterval(() => {
         if (currentCharIndex < state.fullQuestionText.length && !state.isBuzzed) {
-          // Get next character (handling HTML tags specially)
           let nextChar = state.fullQuestionText[currentCharIndex];
-          
-          // If we're at the start of a <br> tag, add the whole tag at once
           if (state.fullQuestionText.substr(currentCharIndex, 4) === "<br>") {
             nextChar = "<br>";
-            currentCharIndex += 3; // Skip ahead
+            currentCharIndex += 3;
           }
-          
-          elements.questionDisplay.innerHTML = 
-            state.fullQuestionText.substring(0, currentCharIndex + 1) + 
+          elements.questionDisplay.innerHTML =
+            state.fullQuestionText.substring(0, currentCharIndex + 1) +
             '<span class="cursor"></span>';
-          
           currentCharIndex++;
-          
-          // Scroll to keep the cursor visible
           const cursor = document.querySelector(".cursor");
           if (cursor) {
             cursor.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
         } else {
           clearInterval(state.typewriterInterval);
-          elements.questionDisplay.innerHTML = state.fullQuestionText; // Remove cursor when done
+          elements.questionDisplay.innerHTML = state.fullQuestionText;
+          if (state.questions[state.currentIndex].type === "TOSS UP") {
+            startTimer(); // ✅ START TIMER HERE
+          }
         }
-      }, 30); // Adjust typing speed here (lower = faster)
+      }, 30);
     }
 
-    // PDF Processing
     elements.pdfInput.addEventListener("change", async function() {
       const file = this.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = async function() {
         const typedArray = new Uint8Array(this.result);
         const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-
         let fullText = "";
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
           fullText += content.items.map(i => i.str).join(" ") + "\n";
         }
-
         elements.debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
         fullText = fullText.replace(/\s+/g, ' ');
         const questionBlocks = fullText.split(/(TOSS UP|BONUS)/i);
-        
         state.questions = [];
-        
         for (let i = 1; i < questionBlocks.length; i += 2) {
           const type = questionBlocks[i].trim();
           const block = questionBlocks[i+1];
-          
           try {
             const headerMatch = block.match(/(\d+)\) (PHYSICS|MATH) (Multiple Choice|Short Answer)/i);
             if (!headerMatch) continue;
-            
             const number = headerMatch[1];
             const category = headerMatch[2].toUpperCase();
             const style = headerMatch[3];
-            
             const answerPos = block.indexOf("ANSWER:");
             if (answerPos === -1) continue;
-            
             let questionBody = block.substring(headerMatch[0].length, answerPos).trim();
             let answer = block.substring(answerPos + "ANSWER:".length).trim();
             answer = answer.split(/(?=TOSS UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
-            
             if (answer === ')' || answer === ') )') {
               const answerInQuestion = questionBody.match(/\[([^\]]+)\]|\(([^)]+)\)/);
               if (answerInQuestion) {
                 answer = answerInQuestion[1] || answerInQuestion[2];
-              } 
-              else if (category === 'PHYSICS' && questionBody.includes('factor')) {
+              } else if (category === 'PHYSICS' && questionBody.includes('factor')) {
                 const factorMatch = questionBody.match(/(\d+(?:\.\d+)?)\s*(?:times|×)/i);
                 answer = factorMatch ? factorMatch[1] : "1/2";
-              }
-              else if (category === 'MATH') {
+              } else if (category === 'MATH') {
                 const mathMatch = questionBody.match(/(\d+)\b/);
                 answer = mathMatch ? mathMatch[1] : answer;
               }
             }
-            
             questionBody = questionBody.replace(/MIT Science Bowl.*$/, '')
-                                     .replace(/Page \d+.*$/, '')
-                                     .trim();
-            
+              .replace(/Page \d+.*$/, '')
+              .trim();
             answer = answer.replace(/MIT Science Bowl.*$/, '')
-                          .replace(/Page \d+.*$/, '')
-                          .trim();
-            
+              .replace(/Page \d+.*$/, '')
+              .trim();
             if (!questionBody || !answer) continue;
-            
             if (style === "Multiple Choice") {
               questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
             }
-            
             state.questions.push({
               number,
               category,
@@ -400,17 +353,14 @@
             console.warn("Error parsing question block:", e, block);
           }
         }
-
         if (state.questions.length === 0) {
           alert("No Math/Physics questions found. Please check the debug info.");
           return;
         }
-
         state.currentIndex = 0;
         showQuestion();
         elements.questionBox.style.display = "block";
       };
-
       reader.readAsArrayBuffer(file);
     });
 
@@ -418,8 +368,6 @@
       const q = state.questions[state.currentIndex];
       elements.questionTitle.textContent = `${q.type} ${q.number} - ${q.category} ${q.style}`;
       state.fullQuestionText = q.question.replace(/\n/g, "<br>");
-      
-      // Start typewriter effect immediately
       startTypewriterEffect();
     }
 
