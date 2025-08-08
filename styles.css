@@ -167,3 +167,20 @@ button:hover {
   font-style: italic;
   color: #666;
 }
+.mode-btn.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: black;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to { opacity: 1; }
+  50% { opacity: 0; }
+}
