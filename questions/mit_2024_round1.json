@@ -1,0 +1,416 @@
+[
+  {
+    "number": 1,
+    "type": "TOSS UP",
+    "category": "EARTH AND SPACE",
+    "style": "Multiple Choice",
+    "question": "Which of the following silicate classes best describes quartz? W) Nesosilicate (Ness-o-silicate) X) Cyclosilicate Y) Inosilicate (Eye-no-silicate) Z) Tectosilicate (tech-to-silicate)",
+    "answer": "Z) Tectosilicate (tech-to-silicate)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 1,
+    "type": "BONUS",
+    "category": "EARTH AND SPACE",
+    "style": "Short Answer",
+    "question": "What technique do astronomers often employ in order to correct for atmospheric distortion when observing distant stars?",
+    "answer": "Adaptive Optics",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 2,
+    "type": "TOSS UP",
+    "category": "CHEMISTRY",
+    "style": "Multiple Choice",
+    "question": "Which of the following hydrocarbons contains the most carbon atoms per molecule? W) Methane X) Ethane Y) Propane Z) Butane",
+    "answer": "Z) Butane",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 2,
+    "type": "BONUS",
+    "category": "CHEMISTRY",
+    "style": "Multiple Choice",
+    "question": "On a phase diagram, a negative slope for the phase boundary between liquid and solid indicates which of the following? W) The solid has greater heat capacity than the liquid X) The liquid has greater heat capacity than the solid Y) The solid has greater density than the liquid Z) The liquid has greater density than the solid",
+    "answer": "Z) The liquid has greater density than the solid",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 3,
+    "type": "TOSS UP",
+    "category": "BIOLOGY",
+    "style": "Short Answer",
+    "question": "Hibernation and estivation are both examples of what physiological state of decreased activity and metabolism?",
+    "answer": "Torpor",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 3,
+    "type": "BONUS",
+    "category": "BIOLOGY",
+    "style": "Short Answer",
+    "question": "Identify all of the following three amino acids that are most likely to be stable in the hydrophobic regions of a plasma membrane protein: 1) Tyrosine 2) Threonine 3) Tryptophan",
+    "answer": "3 only",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 4,
+    "type": "TOSS UP",
+    "category": "MATH",
+    "style": "Multiple Choice",
+    "question": "Katelyn makes the following remark: \"if A = 10, then I like chemistry.\" Which of the following sets of conditions, if met, makes Katelyn's remark false? W) A does not equal 10 and Katelyn likes chemistry X) A equals 10 and Katelyn does not like chemistry Y) A does not equal 10 and Katelyn does not like chemistry Z) Katelyn's remark is always false because the statements are not logically related",
+    "answer": "X) A equals 10 and Katelyn does not like chemistry",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 4,
+    "type": "BONUS",
+    "category": "MATH",
+    "style": "Short Answer",
+    "question": "There are 120 distinct five-digit numbers that can be formed by using each of the digits 3, 4, 5, 6, and 9 exactly once. What is the average of the least and greatest of these numbers?",
+    "answer": "65556",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 5,
+    "type": "TOSS UP",
+    "category": "ENERGY",
+    "style": "Short Answer",
+    "question": "Researchers at the Davis Lab have been studying ribosome biogenesis. Place the following three cell compartments in the order that a newly forming ribosome would pass through as it moves to it's final location: 1) Nuclear pore 2) Nucleolus 3) Cytoplasm",
+    "answer": "2, 1, 3",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 5,
+    "type": "BONUS",
+    "category": "ENERGY",
+    "style": "Multiple Choice",
+    "question": "MIT Scientists at the Ribbeck Lab are studying bacterial autoinducers that allow bacteria to communicate with each other. Which of the following processes, which involves autoinducers, are they studying? W) Taxis X) Quorum sensing Y) Horizontal gene transfer Z) Endospore formation",
+    "answer": "X) Quorum sensing",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 6,
+    "type": "TOSS UP",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "Two stars with masses M and 4M circularly orbit a common center of mass. If the smaller mass has centripetal acceleration a, what is the acceleration of the larger mass, in terms of a?",
+    "answer": "a/4",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 6,
+    "type": "BONUS",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "The hydrogen fluoride molecule has a bond length of 95 picometers. To one significant figure, the center of mass of hydrogen fluoride is how many picometers away from the hydrogen atom? Assume the masses of the hydrogen and fluorine atoms are 1 atomic mass unit and 19 atomic mass units, respectively.",
+    "answer": "90",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 7,
+    "type": "TOSS UP",
+    "category": "EARTH AND SPACE",
+    "style": "Short Answer",
+    "question": "What rock would be formed from limestone due to partial replacement of calcium with magnesium?",
+    "answer": "Dolomite (ACCEPT: Dolostone)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 7,
+    "type": "BONUS",
+    "category": "EARTH AND SPACE",
+    "style": "Multiple Choice",
+    "question": "Which of the following constellations does NOT intersect the ecliptic? W) Taurus X) Sagittarius Y) Aries Z) Aquila",
+    "answer": "Z) Aquila",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 8,
+    "type": "TOSS UP",
+    "category": "MATH",
+    "style": "Short Answer",
+    "question": "What is the side length of a cube with surface area numerically equivalent to one-sixth of its volume?",
+    "answer": "36",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 8,
+    "type": "BONUS",
+    "category": "MATH",
+    "style": "Short Answer",
+    "question": "Line l divides the area of parallelogram ABCD in half. Identify all of the following three statements that must be true about this configuration: 1) l is parallel to two sides of ABCD 2) l passes through the intersection between AC and BD 3) l divides the perimeter of ABCD in half",
+    "answer": "2 and 3 (ACCEPT: All but 1)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 9,
+    "type": "TOSS UP",
+    "category": "BIOLOGY",
+    "style": "Short Answer",
+    "question": "What amino acid, a metabolic product of cysteine, is encoded by the RNA triplet AUG?",
+    "answer": "Methionine",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 9,
+    "type": "BONUS",
+    "category": "BIOLOGY",
+    "style": "Multiple Choice",
+    "question": "Which of the following families of viruses has a single stranded RNA genome? W) Adenoviridae (AH-den-oh-veer-uh-day) X) Herpesviridae (HER-pees-veer-uh-day) Y) Poxviridae (POX-veer-uh-day) Z) Coronaviridae (CORE-oh-na-veer-uh-day)",
+    "answer": "Z) Coronaviridae (CORE-oh-na-veer-uh-day)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 10,
+    "type": "TOSS UP",
+    "category": "ENERGY",
+    "style": "Short Answer",
+    "question": "Engineers at MIT's Research Laboratory of Electronics are developing cobalt-free lithium-ion batteries. Which electrode in a lithium-ion battery uses a cobalt oxide to help convert lithium cations into neutral metallic lithium?",
+    "answer": "Cathode",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 10,
+    "type": "BONUS",
+    "category": "ENERGY",
+    "style": "Short Answer",
+    "question": "Computer scientists at MIT CSAIL are using a method called Adam to train large language models. Adam is a stochastic variant of what general algorithm in machine learning that iteratively minimizes the objective function?",
+    "answer": "Gradient Descent",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 11,
+    "type": "TOSS UP",
+    "category": "CHEMISTRY",
+    "style": "Multiple Choice",
+    "question": "Which of the following 0.1 molar aqueous solutions will not form a precipitate upon addition of hydrochloric acid? W) Ammonium nitrate X) Silver (I) nitrate Y) Lead (II) nitrate Z) Mercury (I) nitrate",
+    "answer": "W) Ammonium nitrate",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 11,
+    "type": "BONUS",
+    "category": "CHEMISTRY",
+    "style": "Multiple Choice",
+    "question": "Which of the following real gases has the highest molar volume at room temperature and standard pressure? W) Helium X) Neon Y) Argon Z) Krypton",
+    "answer": "W) Helium",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 12,
+    "type": "TOSS UP",
+    "category": "PHYSICS",
+    "style": "Multiple Choice",
+    "question": "Jacob is throwing darts at a board, with the goal of hitting as many darts at the center of the board. However, all of Jacob's darts land erratically across the dartboard! Which of the following best describes Jacob's throwing pattern? W) Accurate and precise X) Inaccurate and precise Y) Accurate and imprecise Z) Inaccurate and imprecise",
+    "answer": "Z) Inaccurate and imprecise",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 12,
+    "type": "BONUS",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "Rank the following three metallic mediums at room temperature by increasing speed of sound: 1) Aluminum 2) Mercury 3) Gold",
+    "answer": "2, 3, 1",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 13,
+    "type": "TOSS UP",
+    "category": "ENERGY",
+    "style": "Short Answer",
+    "question": "Scientists at MIT's Kavli Institute are studying the expansion of the universe by observing distant high-redshifted galaxies. In general relativity, the accelerating expansion of the universe is parametrized by what constant?",
+    "answer": "Cosmological constant (ACCEPT: Lambda, Dark energy constant)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 13,
+    "type": "BONUS",
+    "category": "ENERGY",
+    "style": "Multiple Choice",
+    "question": "Researchers at the MIT Methane Network are researching ways to remove methane from the atmosphere using special low-cost silicate microfilters. Which of the following best describes how these microfilters trap methane from the atmosphere? W) Acidic sites inside the microfilters bond with methane molecules X) Basic sites inside the microfilters bond with methane molecules Y) Small pores inside the microfilters trap methane molecules Z) Grooves etched onto the microfilters' surface capture methane molecules",
+    "answer": "Y) Small pores inside the microfilters trap methane molecules",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 14,
+    "type": "TOSS UP",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "The plates on a parallel plate capacitor are brought apart to twice their initial distance of separation without changing the plates or charge stored on either plate. By what factor does the capacitance stored by the capacitor change?",
+    "answer": "0.5 (ACCEPT: 1/2)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 14,
+    "type": "BONUS",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "Laurie is driving at 30 meters per second and sees a deer ahead of her. It takes 300 milliseconds for her to react before she brakes, after which she begins decelerating at 5 meters per second squared. How far, in meters, does she travel after first seeing the deer before she comes to a stop?",
+    "answer": "99",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 15,
+    "type": "TOSS UP",
+    "category": "MATH",
+    "style": "Multiple Choice",
+    "question": "Three letters are picked at random without replacement from a scrabble bag containing two Ms, two Is, and two Ts. What is the probability the letters to form MIT are drawn in order? W) 1/27 X) 1/15 Y) 1/9 Z) 1/6",
+    "answer": "X) 1/15",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 15,
+    "type": "BONUS",
+    "category": "MATH",
+    "style": "Short Answer",
+    "question": "Phoebe is thinking of a number that has three positive integer factors, including itself. When she subtracts four from this number, it has two positive integer factors. What was Phoebe's original number?",
+    "answer": "9",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 16,
+    "type": "TOSS UP",
+    "category": "CHEMISTRY",
+    "style": "Short Answer",
+    "question": "In the molecule carbon monoxide, what is the formal charge on the oxygen atom?",
+    "answer": "+1",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 16,
+    "type": "BONUS",
+    "category": "CHEMISTRY",
+    "style": "Short Answer",
+    "question": "The nuclear fission of uranium-233 is triggered by the capture of a neutron, producing xenon-137, 3 more neutrons, and an unknown nuclide. What is the atomic mass in atomic mass units of the unknown nuclide?",
+    "answer": "94",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 17,
+    "type": "TOSS UP",
+    "category": "BIOLOGY",
+    "style": "Short Answer",
+    "question": "Imbibition in seeds causes a certain hormone that inhibits germination to be washed out. When isolated and tested on a mature plant cell, this hormone was responsible for closing stomata and is acidic in nature. What is the likely identity of this hormone?",
+    "answer": "Abscisic Acid (ABA)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 17,
+    "type": "BONUS",
+    "category": "BIOLOGY",
+    "style": "Short Answer",
+    "question": "Identify all of the following three genetic diseases that display an autosomal recessive form of inheritance: 1) Albinism 2) Phenylketonuria (read: feh-nuhl kee-tuh-nur-ee-uh) 3) Huntington's",
+    "answer": "1 and 2",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 18,
+    "type": "TOSS UP",
+    "category": "EARTH AND SPACE",
+    "style": "Multiple Choice",
+    "question": "Which of the following gases would NOT contribute to the greenhouse effect? W) Homonuclear diatomic gas X) Heteronuclear diatomic gas Y) Homonuclear triatomic gas Z) Heteronuclear triatomic gas",
+    "answer": "W) Homonuclear diatomic gas",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 18,
+    "type": "BONUS",
+    "category": "EARTH AND SPACE",
+    "style": "Multiple Choice",
+    "question": "Astrophysicists predict that recombination between electrons and protons occurred when the universe had cooled to about 3000 kelvin. To the nearest power of ten, by what factor has the universe's surface red-shifted since then? W) 10−3 X) 10−1 Y) 101 Z) 103",
+    "answer": "Z) 103",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 19,
+    "type": "TOSS UP",
+    "category": "BIOLOGY",
+    "style": "Multiple Choice",
+    "question": "Which of the following is NOT characteristic of most K-selected species? W) Semelparous X) Limited by density dependent factors Y) Type 1 survivorship curve Z) Optimized for living near carrying capacity",
+    "answer": "W) Semelparous",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 19,
+    "type": "BONUS",
+    "category": "BIOLOGY",
+    "style": "Short Answer",
+    "question": "Identify all of the following three pairs of animal groups in which the first group of animals contains the second group: 1) Echinodermata (eh-KY-no-derm-ought-ah) and Asteroidea 2) Protostomia and Bilateria (bye-la-TUHR-ee-ah) 3) Pancrustacea and Myriapoda (MEER-ee-ah-pode-ah)",
+    "answer": "1 only (ACCEPT: All but 2 and 3)",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 20,
+    "type": "TOSS UP",
+    "category": "MATH",
+    "style": "Short Answer",
+    "question": "Mitchell writes an increasing arithmetic sequence with integer terms that has its first term equal to 2. If the unit digits of the sequence cycle between two values, what is the smallest possible value for the fourth term?",
+    "answer": "17",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 20,
+    "type": "BONUS",
+    "category": "MATH",
+    "style": "Short Answer",
+    "question": "How many space diagonals are in a regular dodecahedron, which has 12 faces, 20 vertices, and 30 edges?",
+    "answer": "100",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 21,
+    "type": "TOSS UP",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "A particle travels through the three-dimensional potential V (x, y, z) = 17 + 5x (read : V of x, y, z equals 17 plus 5 x). Using i j k notation, what is the unit vector of the particle's acceleration?",
+    "answer": "−i (DO NOT ACCEPT: (−1, 0, 0))",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 21,
+    "type": "BONUS",
+    "category": "PHYSICS",
+    "style": "Short Answer",
+    "question": "A large tank is filled with water up to a height of 2.5 meters and a small hole is poked in the bottom of the tank. What is the speed, in meters per second to one significant figure, at which water leaves the tank through the hole?",
+    "answer": "7",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 22,
+    "type": "TOSS UP",
+    "category": "CHEMISTRY",
+    "style": "Short Answer",
+    "question": "The vapor pressures of liquid water and ice are equivalent at what point on the phase diagram of water?",
+    "answer": "Triple point",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 22,
+    "type": "BONUS",
+    "category": "CHEMISTRY",
+    "style": "Multiple Choice",
+    "question": "Yufei has designed a boat and would like to utilize cathodic protection in order to prevent its hull from corroding. If the boat is made of steel, which of the following metals could be used as a sacrifical anode? W) Nickel X) Copper Y) Zinc Z) Tin",
+    "answer": "Y) Zinc",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 23,
+    "type": "TOSS UP",
+    "category": "EARTH AND SPACE",
+    "style": "Short Answer",
+    "question": "In refracting telescopes, what term describes the unequal bending of different colors due to their differing wavelengths, which can often distort images?",
+    "answer": "Chromatic Aberration",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  },
+  {
+    "number": 23,
+    "type": "BONUS",
+    "category": "EARTH AND SPACE",
+    "style": "Short Answer",
+    "question": "Identify all of the following three factors that would increase the likelihood of mass wasting: 1) Three days of heavy rainfall 2) Rounder sediment grains 3) An extreme cold snap after an afternoon of light rain",
+    "answer": "All",
+    "source": "2024 MIT Science Bowl High School Invitational Round 1"
+  }
+]
