@@ -2,50 +2,151 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>SciBowl Reader</title>
+  <title>SciBowl Reader (Only Math and Physics)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 30px;
+      max-width: 800px;
+      margin: auto;
+    }
+    #headerContainer {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-weight: 700;
+    }
+   #timer {
+  position: fixed;
+  top: 50px;
+  right: 210px;   /* moved 200px left */
+  padding: 8px 18px;
+  background: #ffcc00;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 40px;
+  color: #333;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 0 8px rgba(0,0,0,0.15);
+  user-select: none;
+  min-width: 70px;
+  text-align: center;
+  display: none;
+}
+    .box {
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #questionDisplay {
+      border: 1px solid #eee;
+      padding: 15px;
+      border-radius: 5px;
+      background: #f9f9f9;
+      min-height: 200px;
+      line-height: 1.6;
+    }
+    #debugInfo {
+      display: none;
+      margin-top: 20px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    #ttsControls {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f0f8ff;
+      border-radius: 5px;
+    }
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: black;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+    #answerInput {
+      margin-top: 10px;
+      padding: 8px;
+      width: 100%;
+      font-size: 16px;
+    }
+    #submitAnswer {
+      margin-top: 5px;
+    }
+    #resultMessage {
+      margin-top: 10px;
+      font-weight: bold;
+      min-height: 20px;
+    }
+    .correct {
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+    #buzzerStatus {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 10px;
+      background: #ffcccc;
+      border-radius: 5px;
+      display: none;
+      user-select: none;
+      font-weight: bold;
+      color: #a00;
+      box-shadow: 0 0 8px #a00;
+    }
+  </style>
 </head>
 <body>
   <div id="buzzerStatus">BUZZED!</div>
 
   <div id="headerContainer">
-    <h1>SciBowl Reader</h1>
-    <select id="categoryFilter">
-      <option value="all">All Categories</option>
-    </select>
+    <h1>Science Bowl Practice (Timed Mode)</h1>
+    <h1>SciBowl Reader (Only Math and Physics)</h1>
     <div id="timer">5</div>
   </div>
 
-  <div id="modeSelection">
-    <button id="pdfModeBtn">Load PDF</button>
-    <button id="databaseModeBtn">Question Database</button>
-  </div>
-
-  <div id="pdfMode" class="mode-section">
-    <input type="file" accept="application/pdf" id="pdfInput" />
-    <button id="debugBtn">Show Debug Info</button>
-    <div id="debugInfo"></div>
-  </div>
-
-  <div id="databaseMode" class="mode-section" style="display:none;">
-    <div id="stats">Loaded 0 questions</div>
-    <button id="prevQuestionBtn">Previous Question</button>
-    <button id="nextQuestionBtn">Next Question</button>
-    <button id="randomQuestionBtn">Random Question</button>
-  </div>
+  <input type="file" accept="application/pdf" id="pdfInput" />
+  <button id="debugBtn">Show Debug Info</button>
+  <div id="debugInfo"></div>
 
   <div class="box" id="questionBox" style="display:none;">
     <h2 id="questionTitle"></h2>
     <div id="questionDisplay"></div>
-    
+
     <div id="answerSection" style="display:none;">
       <input type="text" id="answerInput" placeholder="Type your answer..." />
       <button id="submitAnswer">Submit Answer</button>
       <div id="resultMessage"></div>
       <p><strong>Correct Answer:</strong> <span id="correctAnswer"></span></p>
     </div>
-    
+
     <div id="ttsControls">
       <button id="readAloudBtn">Read Aloud</button>
       <button id="nextBtn">Next Question</button>
@@ -53,6 +154,257 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script>
+    const elements = {
+      pdfInput: document.getElementById("pdfInput"),
+      questionBox: document.getElementById("questionBox"),
+      questionTitle: document.getElementById("questionTitle"),
+      questionDisplay: document.getElementById("questionDisplay"),
+      debugBtn: document.getElementById("debugBtn"),
+      debugInfo: document.getElementById("debugInfo"),
+      readAloudBtn: document.getElementById("readAloudBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      speedControl: document.getElementById("speedControl"),
+      answerSection: document.getElementById("answerSection"),
+      answerInput: document.getElementById("answerInput"),
+      submitAnswer: document.getElementById("submitAnswer"),
+      resultMessage: document.getElementById("resultMessage"),
+      correctAnswer: document.getElementById("correctAnswer"),
+      buzzerStatus: document.getElementById("buzzerStatus"),
+      timer: document.getElementById("timer")
+    };
+
+    let state = {
+      questions: [],
+      currentIndex: 0,
+      synth: window.speechSynthesis,
+      currentUtterance: null,
+      typewriterInterval: null,
+      fullQuestionText: "",
+      isBuzzed: false,
+      timerInterval: null,
+      timeLeft: 0
+    };
+
+    elements.debugBtn.addEventListener("click", () => {
+      elements.debugInfo.style.display = elements.debugInfo.style.display === "none" ? "block" : "none";
+    });
+
+    elements.readAloudBtn.addEventListener("click", readAloud);
+    elements.nextBtn.addEventListener("click", nextQuestion);
+    elements.speedControl.addEventListener("input", updateSpeechRate);
+    elements.submitAnswer.addEventListener("click", checkAnswer);
+    elements.answerInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === " " && !state.isBuzzed) {
+        e.preventDefault();
+        buzzIn();
+      } else if (e.key.toLowerCase() === "n") {
+        nextQuestion();
+      }
+    });
+
+    function updateSpeechRate() {
+      if (state.currentUtterance) {
+        state.currentUtterance.rate = elements.speedControl.value;
+      }
+    }
+
+    function buzzIn() {
+      if (state.isBuzzed) return;
+      state.isBuzzed = true;
+      elements.buzzerStatus.style.display = "block";
+      stopTimer();
+      if (state.synth.speaking) state.synth.cancel();
+      clearInterval(state.typewriterInterval);
+      elements.questionDisplay.innerHTML = state.fullQuestionText;
+      elements.answerSection.style.display = "block";
+      elements.answerInput.focus();
+    }
+
+    function checkAnswer() {
+      const userAnswer = elements.answerInput.value.trim().toUpperCase();
+      const correctAnswer = state.questions[state.currentIndex].answer.trim().toUpperCase();
+      const isMultipleChoice = state.questions[state.currentIndex].style === "Multiple Choice";
+      let isCorrect = false;
+      if (isMultipleChoice) {
+        const correctLetter = correctAnswer.match(/^[WXYZ]/)?.[0];
+        isCorrect = correctLetter 
+          ? (userAnswer === correctLetter || userAnswer === correctAnswer)
+          : (userAnswer === correctAnswer);
+      } else {
+        isCorrect = userAnswer === correctAnswer;
+      }
+      elements.resultMessage.textContent = isCorrect ? "Correct!" : "Incorrect";
+      elements.resultMessage.className = isCorrect ? "correct" : "incorrect";
+      elements.correctAnswer.textContent = state.questions[state.currentIndex].answer;
+    }
+
+    function startTimer() {
+      const isTossUp = state.questions[state.currentIndex].type === "TOSS UP";
+      if (!isTossUp) {
+        elements.timer.style.display = "none";
+        return;
+      }
+      stopTimer();
+      state.timeLeft = 5;
+      elements.timer.textContent = state.timeLeft;
+      elements.timer.style.display = "inline-block";
+      state.timerInterval = setInterval(() => {
+        state.timeLeft--;
+        elements.timer.textContent = state.timeLeft;
+        if (state.timeLeft <= 0) {
+          stopTimer();
+          buzzIn();
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(state.timerInterval);
+      elements.timer.style.display = "none";
+    }
+
+    function readAloud() {
+      if (state.synth.speaking) state.synth.cancel();
+      state.currentUtterance = new SpeechSynthesisUtterance(
+        state.questions[state.currentIndex].question.replace(/<br>/g, " ")
+      );
+      state.currentUtterance.rate = elements.speedControl.value;
+      state.currentUtterance.onend = () => {
+        startTimer();
+      };
+      state.synth.speak(state.currentUtterance);
+    }
+
+    function startTypewriterEffect() {
+      clearInterval(state.typewriterInterval);
+      state.isBuzzed = false;
+      elements.buzzerStatus.style.display = "none";
+      elements.answerSection.style.display = "none";
+      elements.answerInput.value = "";
+      elements.resultMessage.textContent = "";
+      elements.correctAnswer.textContent = "";
+      stopTimer();
+
+      let currentCharIndex = 0;
+      elements.questionDisplay.innerHTML = '<span class="cursor"></span>';
+
+      state.typewriterInterval = setInterval(() => {
+        if (currentCharIndex < state.fullQuestionText.length && !state.isBuzzed) {
+          let nextChar = state.fullQuestionText[currentCharIndex];
+          if (state.fullQuestionText.substr(currentCharIndex, 4) === "<br>") {
+            nextChar = "<br>";
+            currentCharIndex += 3;
+          }
+          elements.questionDisplay.innerHTML =
+            state.fullQuestionText.substring(0, currentCharIndex + 1) +
+            '<span class="cursor"></span>';
+          currentCharIndex++;
+          const cursor = document.querySelector(".cursor");
+          if (cursor) {
+            cursor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        } else {
+          clearInterval(state.typewriterInterval);
+          elements.questionDisplay.innerHTML = state.fullQuestionText;
+          if (state.questions[state.currentIndex].type === "TOSS UP") {
+            startTimer();
+          }
+        }
+      }, 30);
+    }
+
+    elements.pdfInput.addEventListener("change", async function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const typedArray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          fullText += content.items.map(i => i.str).join(" ") + "\n";
+        }
+        elements.debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
+        fullText = fullText.replace(/\s+/g, ' ');
+        const questionBlocks = fullText.split(/(TOSS UP|BONUS)/i);
+        state.questions = [];
+        for (let i = 1; i < questionBlocks.length; i += 2) {
+          const type = questionBlocks[i].trim();
+          const block = questionBlocks[i+1];
+          try {
+            const headerMatch = block.match(/(\d+)\) (PHYSICS|MATH) (Multiple Choice|Short Answer)/i);
+            if (!headerMatch) continue;
+            const number = headerMatch[1];
+            const category = headerMatch[2].toUpperCase();
+            const style = headerMatch[3];
+            const answerPos = block.indexOf("ANSWER:");
+            if (answerPos === -1) continue;
+            let questionBody = block.substring(headerMatch[0].length, answerPos).trim();
+            let answer = block.substring(answerPos + "ANSWER:".length).trim();
+            answer = answer.split(/(?=TOSS UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
+            if (answer === ')' || answer === ') )') {
+              const answerInQuestion = questionBody.match(/\[([^\]]+)\]|\(([^)]+)\)/);
+              if (answerInQuestion) {
+                answer = answerInQuestion[1] || answerInQuestion[2];
+              } else if (category === 'PHYSICS' && questionBody.includes('factor')) {
+                const factorMatch = questionBody.match(/(\d+(?:\.\d+)?)\s*(?:times|×)/i);
+                answer = factorMatch ? factorMatch[1] : "1/2";
+              } else if (category === 'MATH') {
+                const mathMatch = questionBody.match(/(\d+)\b/);
+                answer = mathMatch ? mathMatch[1] : answer;
+              }
+            }
+            questionBody = questionBody.replace(/MIT Science Bowl.*$/, '')
+              .replace(/Page \d+.*$/, '')
+              .trim();
+            answer = answer.replace(/MIT Science Bowl.*$/, '')
+              .replace(/Page \d+.*$/, '')
+              .trim();
+            if (!questionBody || !answer) continue;
+            if (style === "Multiple Choice") {
+              questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
+            }
+            state.questions.push({
+              number,
+              category,
+              style,
+              question: questionBody,
+              answer,
+              type
+            });
+          } catch (e) {
+            console.warn("Error parsing question block:", e, block);
+          }
+        }
+        if (state.questions.length === 0) {
+          alert("No Math/Physics questions found. Please check the debug info.");
+          return;
+        }
+        state.currentIndex = 0;
+        showQuestion();
+        elements.questionBox.style.display = "block";
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function showQuestion() {
+      const q = state.questions[state.currentIndex];
+      elements.questionTitle.textContent = `${q.type} ${q.number} - ${q.category} ${q.style}`;
+      state.fullQuestionText = q.question.replace(/\n/g, "<br>");
+      startTypewriterEffect();
+    }
+
+    function nextQuestion() {
+      state.currentIndex = (state.currentIndex + 1) % state.questions.length;
+      showQuestion();
+    }
+  </script>
 </body>
 </html>
