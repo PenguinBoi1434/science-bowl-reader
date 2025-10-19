@@ -1,410 +1,553 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SciBowl Reader (Only Math and Physics)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SciBowl Reader — Math & Physics (Rewritten)</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
   </script>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 30px;
-      max-width: 800px;
-      margin: auto;
+    :root{
+      --bg:#0b1020; --panel:#121a34; --muted:#9fb0ff; --text:#eef1ff; --accent:#7aa3ff; --good:#30d158; --bad:#ff453a; --chip:#1a2652;
     }
-    #headerContainer {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 20px;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background:radial-gradient(1200px 800px at 20% -10%, #14214d 0%, #0b1020 60%);
+      color:var(--text); display:flex; flex-direction:column;
     }
-    h1 {
-      margin: 0;
-      font-weight: 700;
+    header{
+      display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #1c2754; backdrop-filter:saturate(150%) blur(3px);
+      position:sticky; top:0; z-index:10; background:linear-gradient(to bottom, rgba(9,14,31,0.8), rgba(9,14,31,0.4));
     }
-   #timer {
-  position: fixed;
-  top: 50px;
-  right: 210px;   /* moved 200px left */
-  padding: 8px 18px;
-  background: #ffcc00;
-  border-radius: 12px;
-  font-weight: bold;
-  font-size: 40px;
-  color: #333;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  box-shadow: 0 0 8px rgba(0,0,0,0.15);
-  user-select: none;
-  min-width: 70px;
-  text-align: center;
-  display: none;
-}
-    .box {
-      border: 1px solid #ccc;
-      padding: 20px;
-      border-radius: 10px;
-      margin-top: 20px;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #questionDisplay {
-      border: 1px solid #eee;
-      padding: 15px;
-      border-radius: 5px;
-      background: #f9f9f9;
-      min-height: 200px;
-      line-height: 1.6;
-    }
-    #debugInfo {
-      display: none;
-      margin-top: 20px;
-      padding: 10px;
-      background: #f5f5f5;
-      border-radius: 5px;
-      white-space: pre-wrap;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    #ttsControls {
-      margin-top: 15px;
-      padding: 10px;
-      background: #f0f8ff;
-      border-radius: 5px;
-    }
-    .cursor {
-      display: inline-block;
-      width: 2px;
-      height: 1em;
-      background: black;
-      animation: blink 1s infinite;
-      vertical-align: middle;
-    }
-    @keyframes blink {
-      50% { opacity: 0; }
-    }
-    #answerInput {
-      margin-top: 10px;
-      padding: 8px;
-      width: 100%;
-      font-size: 16px;
-    }
-    #submitAnswer {
-      margin-top: 5px;
-    }
-    #resultMessage {
-      margin-top: 10px;
-      font-weight: bold;
-      min-height: 20px;
-    }
-    .correct {
-      color: green;
-    }
-    .incorrect {
-      color: red;
-    }
-    #buzzerStatus {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      padding: 10px;
-      background: #ffcccc;
-      border-radius: 5px;
-      display: none;
-      user-select: none;
-      font-weight: bold;
-      color: #a00;
-      box-shadow: 0 0 8px #a00;
-    }
+    header h1{margin:0; font-size:20px; font-weight:700; letter-spacing:.2px}
+    header .subtitle{opacity:.7; font-size:13px}
+    main{max-width:1100px; width:100%; margin:0 auto; padding:18px; display:grid; grid-template-columns: 320px 1fr; gap:18px; flex:1}
+
+    /* left panel */
+    .panel{background:var(--panel); border:1px solid #1b2550; border-radius:16px; padding:16px; box-shadow:0 5px 30px rgba(14,25,79,.25) inset, 0 10px 30px rgba(0,0,0,.25)}
+    .panel h2{margin:2px 0 12px; font-size:15px; opacity:.9}
+    .panel .group{display:flex; flex-direction:column; gap:10px; margin:10px 0 14px}
+    .panel label{font-size:13px; opacity:.9}
+    input[type="file"]{width:100%}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .chip{background:var(--chip); border:1px solid #223067; padding:6px 10px; border-radius:999px; font-size:12px}
+    .switch{display:inline-flex; align-items:center; gap:6px}
+    .switch input{accent-color:var(--accent)}
+    .btn{appearance:none; border:none; padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; background:#263a86; color:#e7ecff; box-shadow:0 6px 16px rgba(84,114,255,.25); transition:.15s transform ease}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.secondary{background:#1d264f}
+    .btn.ghost{background:transparent; border:1px solid #2b3e88}
+
+    .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 10px; font-size:13px}
+    .kv div:nth-child(odd){opacity:.75}
+
+    /* right panel */
+    .stage{position:relative; background:#0d1431; border:1px solid #1b2550; border-radius:18px; padding:18px; min-height:420px; box-shadow:0 20px 60px rgba(6,12,48,.45) inset, 0 20px 60px rgba(0,0,0,.35)}
+    .title{font-size:16px; font-weight:700; margin:0 0 10px; letter-spacing:.3px}
+    .question{background:#0a112a; border:1px solid #293a82; border-radius:12px; padding:16px; line-height:1.6; font-size:16px; min-height:220px}
+    .question .cursor{display:inline-block; width:2px; height:1em; background:#e7ecff; animation:blink 1s infinite; vertical-align:middle}
+    @keyframes blink{50%{opacity:0}}
+
+    .controls{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+    .controls .btn{padding:8px 12px; font-size:14px}
+    .rightbar{display:flex; gap:10px; align-items:center; margin-left:auto}
+
+    .answer-area{display:none; margin-top:12px; gap:8px}
+    .answer-area input{flex:1; padding:10px 12px; font-size:16px; border-radius:10px; border:1px solid #2b3e88; background:#0e1738; color:var(--text)}
+    .result{min-height:24px; font-weight:800; margin-top:8px}
+    .result.correct{color:var(--good)}
+    .result.incorrect{color:var(--bad)}
+
+    .toast{position:fixed; top:12px; right:12px; padding:10px 14px; border-radius:10px; font-weight:800; display:none; background:#ffc857; color:#1c1300; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+
+    .timer{position:absolute; top:16px; right:16px; background:#ffc857; color:#1c1300; font-weight:900; padding:6px 10px; border-radius:10px; display:none}
+    .score{position:absolute; bottom:16px; right:16px; gap:6px; display:flex; align-items:center; background:#101944; border:1px solid #2b3e88; border-radius:999px; padding:6px 10px; font-size:13px}
+    .score strong{letter-spacing:.2px}
+
+    details.debug{margin-top:14px}
+    details.debug pre{white-space:pre-wrap; max-height:260px; overflow:auto; background:#070b1a; border:1px solid #222d63; padding:10px; border-radius:8px}
+
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:#0f183d; border:1px solid #2b3e88; padding:2px 6px; border-radius:6px; font-size:12px}
   </style>
 </head>
 <body>
-  <div id="buzzerStatus">BUZZED!</div>
+  <header>
+    <h1>Science Bowl Practice — Math & Physics</h1>
+    <div class="subtitle">PDF.js + robust parser • space = buzz, N/P = next/prev</div>
+  </header>
 
-  <div id="headerContainer">
-    <h1>Science Bowl Practice </h1>
-    <h1>Only Math and Physics</h1>
-    <div id="timer">5</div>
-  </div>
+  <main>
+    <section class="panel" aria-label="Controls">
+      <h2>Load Packet</h2>
+      <div class="group">
+        <input id="pdfInput" type="file" accept="application/pdf" />
+        <div class="kv" id="fileMeta" hidden>
+          <div>Pages</div><div id="metaPages">–</div>
+          <div>Parsed</div><div id="metaParsed">–</div>
+        </div>
+      </div>
 
-  <input type="file" accept="application/pdf" id="pdfInput" />
-  <button id="debugBtn">Show Debug Info</button>
-  <div id="debugInfo"></div>
+      <h2>Filters</h2>
+      <div class="group">
+        <div class="row">
+          <label class="switch"><input id="fMath" type="checkbox" checked> Math</label>
+          <label class="switch"><input id="fPhysics" type="checkbox" checked> Physics</label>
+          <label class="switch"><input id="fTossUp" type="checkbox" checked> Toss-Ups</label>
+          <label class="switch"><input id="fBonus" type="checkbox" checked> Bonuses</label>
+        </div>
+        <div class="row">
+          <button class="btn ghost" id="applyFilters">Apply Filters</button>
+          <button class="btn secondary" id="shuffleBtn" title="Shuffle order">Shuffle</button>
+          <button class="btn secondary" id="resetBtn" title="Clear state">Reset</button>
+        </div>
+      </div>
 
-  <div class="box" id="questionBox" style="display:none;">
-    <h2 id="questionTitle"></h2>
-    <div id="questionDisplay"></div>
+      <h2>Reader</h2>
+      <div class="group">
+        <div class="row">
+          <button class="btn" id="readBtn">Read Aloud</button>
+          <button class="btn secondary" id="stopReadBtn">Stop</button>
+        </div>
+        <div class="row">
+          <label>Rate <input id="rate" type="range" min="0.6" max="2" step="0.1" value="1"></label>
+          <span class="chip">Press <span class="kbd">Space</span> to buzz</span>
+        </div>
+      </div>
 
-    <div id="answerSection" style="display:none;">
-      <input type="text" id="answerInput" placeholder="Type your answer..." />
-      <button id="submitAnswer">Submit Answer</button>
-      <div id="resultMessage"></div>
-      <p><strong>Correct Answer:</strong> <span id="correctAnswer"></span></p>
-    </div>
+      <h2>Shortcuts</h2>
+      <div class="group">
+        <div class="row">
+          <span class="chip"><span class="kbd">Space</span> Buzz</span>
+          <span class="chip"><span class="kbd">N</span> Next</span>
+          <span class="chip"><span class="kbd">P</span> Prev</span>
+          <span class="chip"><span class="kbd">R</span> Read</span>
+        </div>
+      </div>
 
-    <div id="ttsControls">
-      <button id="readAloudBtn">Read Aloud</button>
-      <button id="nextBtn">Next Question</button>
-      <label>Speed: <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1"></label>
-    </div>
-  </div>
+      <details class="debug">
+        <summary>Debug / Raw Extract</summary>
+        <pre id="debug"></pre>
+      </details>
+    </section>
+
+    <section class="stage" aria-live="polite">
+      <div class="timer" id="timer">5</div>
+      <div class="score" id="score">
+        <strong>Score:</strong> <span id="scoreVal">0</span>
+      </div>
+
+      <h3 class="title" id="qTitle">Load a PDF to begin</h3>
+      <div class="question" id="qText"><em>Use any MIT/NSB-style packet. This reader understands many common formats (TOSS UP / BONUS, MC/SA, WXYZ/ABCD choices, various headers, and ANSWER lines).</em></div>
+
+      <div class="controls">
+        <button class="btn" id="prevBtn">Prev</button>
+        <button class="btn" id="nextBtn">Next</button>
+        <button class="btn" id="buzzBtn">Buzz</button>
+        <div class="rightbar">
+          <span class="chip" id="posChip" hidden>0 / 0</span>
+        </div>
+      </div>
+
+      <div class="answer-area" id="answerArea">
+        <input id="answerInput" placeholder="Type your answer… (Enter to submit)" />
+        <button class="btn" id="submitBtn">Submit</button>
+      </div>
+      <div id="result" class="result"></div>
+      <div id="correct" class="chip" style="display:none"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">BUZZED!</div>
 
   <script>
-    const elements = {
-      pdfInput: document.getElementById("pdfInput"),
-      questionBox: document.getElementById("questionBox"),
-      questionTitle: document.getElementById("questionTitle"),
-      questionDisplay: document.getElementById("questionDisplay"),
-      debugBtn: document.getElementById("debugBtn"),
-      debugInfo: document.getElementById("debugInfo"),
-      readAloudBtn: document.getElementById("readAloudBtn"),
-      nextBtn: document.getElementById("nextBtn"),
-      speedControl: document.getElementById("speedControl"),
-      answerSection: document.getElementById("answerSection"),
-      answerInput: document.getElementById("answerInput"),
-      submitAnswer: document.getElementById("submitAnswer"),
-      resultMessage: document.getElementById("resultMessage"),
-      correctAnswer: document.getElementById("correctAnswer"),
-      buzzerStatus: document.getElementById("buzzerStatus"),
-      timer: document.getElementById("timer")
+  /********************
+   * App State
+   ********************/
+  const els = {
+    pdfInput: document.getElementById('pdfInput'),
+    fileMeta: document.getElementById('fileMeta'),
+    metaPages: document.getElementById('metaPages'),
+    metaParsed: document.getElementById('metaParsed'),
+
+    fMath: document.getElementById('fMath'),
+    fPhysics: document.getElementById('fPhysics'),
+    fTossUp: document.getElementById('fTossUp'),
+    fBonus: document.getElementById('fBonus'),
+    applyFilters: document.getElementById('applyFilters'),
+    shuffleBtn: document.getElementById('shuffleBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+
+    readBtn: document.getElementById('readBtn'),
+    stopReadBtn: document.getElementById('stopReadBtn'),
+    rate: document.getElementById('rate'),
+
+    debug: document.getElementById('debug'),
+
+    qTitle: document.getElementById('qTitle'),
+    qText: document.getElementById('qText'),
+    posChip: document.getElementById('posChip'),
+
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    buzzBtn: document.getElementById('buzzBtn'),
+
+    answerArea: document.getElementById('answerArea'),
+    answerInput: document.getElementById('answerInput'),
+    submitBtn: document.getElementById('submitBtn'),
+    result: document.getElementById('result'),
+    correct: document.getElementById('correct'),
+
+    timer: document.getElementById('timer'),
+    toast: document.getElementById('toast'),
+    score: document.getElementById('score'),
+    scoreVal: document.getElementById('scoreVal'),
+  };
+
+  const state = {
+    pages: 0,
+    raw: '',
+    allQuestions: [], // full parsed list
+    view: [],         // filtered view
+    idx: 0,
+    speaking: null,
+    typewriter: null,
+    isBuzzed: false,
+    timerId: null,
+    timeLeft: 5,
+    score: 0,
+  };
+
+  /********************
+   * Utilities
+   ********************/
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const showToast = (msg) => { els.toast.textContent = msg; els.toast.style.display = 'block'; setTimeout(()=> els.toast.style.display='none', 800); };
+  const clamp = (n,min,max)=> Math.max(min, Math.min(max,n));
+  const choiceLetters = ['W','X','Y','Z','A','B','C','D'];
+
+  function shuffleInPlace(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function normalizeDashes(s){ return s.replace(/[\u2010-\u2015]/g,'-'); }
+  function stripHeadersFooters(s){
+    return s
+      // common MIT / NSB clutter
+      .replace(/MIT\s+Science\s+Bowl.*?(?:Page\s*\d+)?/gi,' ')
+      .replace(/Page\s*\d+\s*/gi,' ')
+      .replace(/NSB\u00ae?/gi,' ')
+      .replace(/[\u00AD]/g,'')
+      .replace(/\s+~+\s+/g,'\n')
+      .replace(/[ \t]+\n/g,'\n');
+  }
+  function unifyMarkers(s){
+    return s
+      .replace(/\bTOSS[-\s]?UP\b/gi,'TOSS UP')
+      .replace(/\bTOSSUP\b/gi,'TOSS UP')
+      .replace(/\bTU\b/g,'TOSS UP')
+      .replace(/\bBONUS\b/gi,'BONUS')
+      .replace(/\bBO\b/g,'BONUS');
+  }
+  function normSubject(raw){
+    const t = raw.trim().toUpperCase();
+    if(/^PHYS(?:ICS)?$/.test(t)) return 'PHYSICS';
+    if(/^MATH(?:EMATICS)?$/.test(t)) return 'MATH';
+    return t;
+  }
+  function normStyle(raw){
+    const t = raw.trim();
+    if(/^Multiple\s*Choice$/i.test(t) || /^MC$/i.test(t)) return 'Multiple Choice';
+    if(/^Short\s*Answer$/i.test(t) || /^SA$/i.test(t)) return 'Short Answer';
+    return t;
+  }
+
+  /********************
+   * PDF Loading
+   ********************/
+  els.pdfInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(){
+      const typedArray = new Uint8Array(this.result);
+      const pdf = await pdfjsLib.getDocument({data:typedArray}).promise;
+      state.pages = pdf.numPages;
+      let text = '';
+      for(let i=1;i<=pdf.numPages;i++){
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(it=> it.str).join(' ');
+        text += pageText + '\n';
+      }
+      state.raw = text;
+      els.debug.textContent = (text.slice(0,4000) + (text.length>4000?'\n…(truncated)':'')).trim();
+      parseAll();
+      applyFilters();
+      render();
+      els.fileMeta.hidden = false;
+      els.metaPages.textContent = String(state.pages);
+      els.metaParsed.textContent = String(state.allQuestions.length);
     };
+    reader.readAsArrayBuffer(file);
+  });
 
-    let state = {
-      questions: [],
-      currentIndex: 0,
-      synth: window.speechSynthesis,
-      currentUtterance: null,
-      typewriterInterval: null,
-      fullQuestionText: "",
-      isBuzzed: false,
-      timerInterval: null,
-      timeLeft: 0
-    };
+  /********************
+   * Parsing (robust to MIT/NSB variants)
+   ********************/
+  function parseAll(){
+    let t = state.raw;
+    t = normalizeDashes(t);
+    t = stripHeadersFooters(t);
+    t = unifyMarkers(t);
 
-    elements.debugBtn.addEventListener("click", () => {
-      elements.debugInfo.style.display = elements.debugInfo.style.display === "none" ? "block" : "none";
-    });
+    // We keep some newlines, but squeeze long runs of spaces
+    t = t.replace(/[\t ]{2,}/g,' ');
 
-    elements.readAloudBtn.addEventListener("click", readAloud);
-    elements.nextBtn.addEventListener("click", nextQuestion);
-    elements.speedControl.addEventListener("input", updateSpeechRate);
-    elements.submitAnswer.addEventListener("click", checkAnswer);
-    elements.answerInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") checkAnswer();
-    });
+    // Split into logical blocks starting at a marker line
+    const blocks = t.split(/(?=^\s*(?:TOSS UP|BONUS)\s*$)/gim);
 
-    document.addEventListener("keydown", (e) => {
-      if (e.key === " " && !state.isBuzzed) {
-        e.preventDefault();
-        buzzIn();
-      } else if (e.key.toLowerCase() === "n") {
-        nextQuestion();
+    const out = [];
+
+    for(const rawBlock of blocks){
+      const block = rawBlock.trim();
+      if(!block) continue;
+
+      const typeMatch = block.match(/^(TOSS UP|BONUS)\s*$/im);
+      if(!typeMatch) continue;
+      const type = typeMatch[1].toUpperCase();
+
+      const rest = block.replace(/^(TOSS UP|BONUS)\s*$/im,'').trim();
+
+      // Header patterns we accept:
+      //  1) PHYSICS - Multiple Choice
+      //  2) Math – Short Answer
+      //  3) PHYS – MC
+      const header = rest.match(/(\d+)\)\s*([A-Za-z &]+?)\s*[-]\s*(Multiple\s*Choice|Short\s*Answer|MC|SA)/i);
+      if(!header) continue;
+      const number = header[1];
+      const category = normSubject(header[2]);
+      const style = normStyle(header[3]);
+
+      // Only keep Math/Physics, ignore others
+      if(!(category==='MATH' || category==='PHYSICS')) continue;
+
+      const afterHeader = rest.slice(header.index + header[0].length).trim();
+
+      // Look for ANSWER: (first occurrence). Everything before is question text
+      const ansIdx = afterHeader.search(/^\s*ANSWER\s*:/im);
+      if(ansIdx === -1) continue;
+
+      const qBodyRaw = afterHeader.slice(0, ansIdx).trim();
+      const ansLine = afterHeader.slice(ansIdx).split(/\r?\n/)[0];
+      let answer = ansLine.replace(/^\s*ANSWER\s*:\s*/i,'').trim();
+
+      // Clean question text: ensure options labeled W/X/Y/Z or A/B/C/D are on separate lines
+      let question = qBodyRaw
+        .replace(/\s([WXYZ])\)\s?/g, '\n$1) ')
+        .replace(/\s([ABCD])\)\s?/g, '\n$1) ')
+        .replace(/[ \t]{2,}/g,' ')
+        .trim();
+
+      // If MC but options are still inline, try again
+      if(style==='Multiple Choice' && !(/[\n][WXYZ]\)/.test(question) || !(/[\n][ABCD]\)/.test(question))){
+        question = question
+          .replace(/\s([WXYZ])\)/g,'\n$1)')
+          .replace(/\s([ABCD])\)/g,'\n$1)');
       }
-    });
 
-    function updateSpeechRate() {
-      if (state.currentUtterance) {
-        state.currentUtterance.rate = elements.speedControl.value;
-      }
+      // Normalize answers like "W) TEXT" or "(W) TEXT" -> keep full line
+      answer = answer.replace(/^\((.)\)/,'$1)').trim();
+
+      out.push({ number, category, style, type, question, answer });
     }
 
-    function buzzIn() {
-      if (state.isBuzzed) return;
-      state.isBuzzed = true;
-      elements.buzzerStatus.style.display = "block";
-      stopTimer();
-      if (state.synth.speaking) state.synth.cancel();
-      clearInterval(state.typewriterInterval);
-      elements.questionDisplay.innerHTML = state.fullQuestionText;
-      elements.answerSection.style.display = "block";
-      elements.answerInput.focus();
+    state.allQuestions = out;
+  }
+
+  /********************
+   * Filters & View
+   ********************/
+  function applyFilters(){
+    const keepMath = els.fMath.checked;
+    const keepPhys = els.fPhysics.checked;
+    const keepTU = els.fTossUp.checked;
+    const keepBO = els.fBonus.checked;
+
+    state.view = state.allQuestions.filter(q =>
+      ( (q.category==='MATH' && keepMath) || (q.category==='PHYSICS' && keepPhys) ) &&
+      ( (q.type==='TOSS UP' && keepTU) || (q.type==='BONUS' && keepBO) )
+    );
+    state.idx = 0;
+    updatePosChip();
+  }
+
+  function updatePosChip(){
+    els.posChip.hidden = state.view.length===0;
+    els.posChip.textContent = `${Math.min(state.idx+1, Math.max(state.view.length,1))} / ${state.view.length}`;
+  }
+
+  els.applyFilters.addEventListener('click', ()=>{ applyFilters(); render(); });
+  els.shuffleBtn.addEventListener('click', ()=>{ shuffleInPlace(state.view); state.idx=0; render(); });
+  els.resetBtn.addEventListener('click', ()=>{
+    state.score = 0; els.scoreVal.textContent = '0';
+    state.idx = 0; render();
+  });
+
+  /********************
+   * Render & Typewriter
+   ********************/
+  function render(){
+    stopSpeech(); stopTimer(); hideAnswer(); clearFeedback();
+
+    if(state.view.length===0){
+      els.qTitle.textContent = 'No questions match your filters';
+      els.qText.innerHTML = '<em>Try toggling filters or load a different PDF.</em>';
+      updatePosChip();
+      return;
     }
 
-    function checkAnswer() {
-      const userAnswer = elements.answerInput.value.trim().toUpperCase();
-      const correctAnswer = state.questions[state.currentIndex].answer.trim().toUpperCase();
-      const isMultipleChoice = state.questions[state.currentIndex].style === "Multiple Choice";
-      let isCorrect = false;
-      if (isMultipleChoice) {
-        const correctLetter = correctAnswer.match(/^[WXYZ]/)?.[0];
-        isCorrect = correctLetter 
-          ? (userAnswer === correctLetter || userAnswer === correctAnswer)
-          : (userAnswer === correctAnswer);
-      } else {
-        isCorrect = userAnswer === correctAnswer;
-      }
-      elements.resultMessage.textContent = isCorrect ? "Correct!" : "Incorrect";
-      elements.resultMessage.className = isCorrect ? "correct" : "incorrect";
-      elements.correctAnswer.textContent = state.questions[state.currentIndex].answer;
-    }
+    const q = state.view[state.idx];
+    els.qTitle.textContent = `${q.type} ${q.number} — ${q.category} ${q.style}`;
 
-    function startTimer() {
-      const isTossUp = state.questions[state.currentIndex].type === "TOSS UP";
-      if (!isTossUp) {
-        elements.timer.style.display = "none";
+    const html = q.question
+      .replace(/\n/g,'<br>')
+      .replace(/\s+$/,'');
+
+    typewriter(html);
+    updatePosChip();
+  }
+
+  function typewriter(html){
+    clearInterval(state.typewriter);
+    state.isBuzzed = false;
+    els.qText.innerHTML = '<span class="cursor"></span>';
+
+    let i = 0; const speed = 16; // ms per char
+    state.typewriter = setInterval(()=>{
+      if(state.isBuzzed){ clearInterval(state.typewriter); return; }
+      if(i >= html.length){
+        clearInterval(state.typewriter);
+        const cur = state.view[state.idx];
+        if(cur.type==='TOSS UP') startTimer();
         return;
       }
-      stopTimer();
-      state.timeLeft = 5;
-      elements.timer.textContent = state.timeLeft;
-      elements.timer.style.display = "inline-block";
-      state.timerInterval = setInterval(() => {
-        state.timeLeft--;
-        elements.timer.textContent = state.timeLeft;
-        if (state.timeLeft <= 0) {
-          stopTimer();
-          buzzIn();
-        }
-      }, 1000);
+      // handle <br>
+      if(html.slice(i,i+4)==='<br>'){ i+=4; els.qText.innerHTML = html.slice(0,i) + '<span class="cursor"></span>'; return; }
+      i++;
+      els.qText.innerHTML = html.slice(0,i) + '<span class="cursor"></span>';
+      const cursor = els.qText.querySelector('.cursor');
+      if(cursor){ cursor.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+    }, speed);
+  }
+
+  function clearFeedback(){ els.result.textContent=''; els.result.className='result'; els.correct.style.display='none'; }
+
+  /********************
+   * TTS
+   ********************/
+  function readAloud(){
+    stopSpeech();
+    if(!state.view.length) return;
+    const q = state.view[state.idx];
+    const txt = q.question.replace(/\n/g,' ').replace(/<br>/g,' ');
+    const u = new SpeechSynthesisUtterance(txt);
+    u.rate = parseFloat(els.rate.value || '1');
+    u.onend = ()=>{ if(q.type==='TOSS UP') startTimer(); };
+    state.speaking = u;
+    window.speechSynthesis.speak(u);
+  }
+  function stopSpeech(){ if(window.speechSynthesis.speaking) window.speechSynthesis.cancel(); state.speaking=null; }
+
+  els.readBtn.addEventListener('click', readAloud);
+  els.stopReadBtn.addEventListener('click', stopSpeech);
+  els.rate.addEventListener('input', ()=>{ if(state.speaking) state.speaking.rate = parseFloat(els.rate.value||'1'); });
+
+  /********************
+   * Buzzer & Timer
+   ********************/
+  function buzz(){
+    if(state.isBuzzed) return;
+    state.isBuzzed = true;
+    stopTimer(); stopSpeech(); clearInterval(state.typewriter);
+    els.toast.textContent = 'BUZZED!'; showToast('BUZZED!');
+    // Reveal full question text immediately
+    els.qText.innerHTML = state.view[state.idx].question.replace(/\n/g,'<br>');
+    showAnswer();
+  }
+
+  function showAnswer(){ els.answerArea.style.display='flex'; els.answerInput.value=''; els.answerInput.focus(); }
+  function hideAnswer(){ els.answerArea.style.display='none'; }
+
+  function startTimer(){
+    stopTimer();
+    state.timeLeft = 5; els.timer.textContent = String(state.timeLeft); els.timer.style.display='inline-block';
+    state.timerId = setInterval(()=>{
+      state.timeLeft--; els.timer.textContent = String(state.timeLeft);
+      if(state.timeLeft<=0){ stopTimer(); buzz(); }
+    }, 1000);
+  }
+  function stopTimer(){ clearInterval(state.timerId); els.timer.style.display='none'; }
+
+  /********************
+   * Answer Checking
+   ********************/
+  function submitAnswer(){
+    if(!state.view.length) return;
+    const user = els.answerInput.value.trim();
+    const correct = state.view[state.idx].answer.trim();
+    const isMC = state.view[state.idx].style === 'Multiple Choice';
+
+    let verdict = false;
+    if(isMC){
+      // Accept letter or full text. Support WXYZ and ABCD.
+      const letter = (correct.match(/^([WXYZABCD])\)/i)||[])[1];
+      const uL = user.toUpperCase().replace(/[^A-Z]/g,'');
+      const cL = letter ? letter.toUpperCase() : null;
+      verdict = cL ? (uL===cL || user.trim().toUpperCase()===correct.toUpperCase()) : (user.trim().toUpperCase()===correct.toUpperCase());
+    } else {
+      verdict = user.trim().toUpperCase()===correct.toUpperCase();
     }
 
-    function stopTimer() {
-      clearInterval(state.timerInterval);
-      elements.timer.style.display = "none";
-    }
+    els.result.textContent = verdict ? 'Correct!' : 'Incorrect';
+    els.result.className = 'result ' + (verdict ? 'correct' : 'incorrect');
+    els.correct.style.display='inline-block';
+    els.correct.textContent = 'Answer: ' + correct;
 
-    function readAloud() {
-      if (state.synth.speaking) state.synth.cancel();
-      state.currentUtterance = new SpeechSynthesisUtterance(
-        state.questions[state.currentIndex].question.replace(/<br>/g, " ")
-      );
-      state.currentUtterance.rate = elements.speedControl.value;
-      state.currentUtterance.onend = () => {
-        startTimer();
-      };
-      state.synth.speak(state.currentUtterance);
-    }
+    // simple scoring: +4/-1 on toss-ups, +10/0 on bonuses
+    const q = state.view[state.idx];
+    let delta = 0;
+    if(q.type==='TOSS UP') delta = verdict ? 4 : -1; else delta = verdict ? 10 : 0;
+    state.score += delta; els.scoreVal.textContent = String(state.score);
+  }
 
-    function startTypewriterEffect() {
-      clearInterval(state.typewriterInterval);
-      state.isBuzzed = false;
-      elements.buzzerStatus.style.display = "none";
-      elements.answerSection.style.display = "none";
-      elements.answerInput.value = "";
-      elements.resultMessage.textContent = "";
-      elements.correctAnswer.textContent = "";
-      stopTimer();
+  els.submitBtn.addEventListener('click', submitAnswer);
+  els.answerInput.addEventListener('keydown', e=>{ if(e.key==='Enter') submitAnswer(); });
 
-      let currentCharIndex = 0;
-      elements.questionDisplay.innerHTML = '<span class="cursor"></span>';
+  /********************
+   * Navigation
+   ********************/
+  function next(){ if(!state.view.length) return; state.idx = (state.idx+1) % state.view.length; render(); }
+  function prev(){ if(!state.view.length) return; state.idx = (state.idx-1+state.view.length) % state.view.length; render(); }
 
-      state.typewriterInterval = setInterval(() => {
-        if (currentCharIndex < state.fullQuestionText.length && !state.isBuzzed) {
-          let nextChar = state.fullQuestionText[currentCharIndex];
-          if (state.fullQuestionText.substr(currentCharIndex, 4) === "<br>") {
-            nextChar = "<br>";
-            currentCharIndex += 3;
-          }
-          elements.questionDisplay.innerHTML =
-            state.fullQuestionText.substring(0, currentCharIndex + 1) +
-            '<span class="cursor"></span>';
-          currentCharIndex++;
-          const cursor = document.querySelector(".cursor");
-          if (cursor) {
-            cursor.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-        } else {
-          clearInterval(state.typewriterInterval);
-          elements.questionDisplay.innerHTML = state.fullQuestionText;
-          if (state.questions[state.currentIndex].type === "TOSS UP") {
-            startTimer();
-          }
-        }
-      }, 30);
-    }
+  els.nextBtn.addEventListener('click', next);
+  els.prevBtn.addEventListener('click', prev);
+  els.buzzBtn.addEventListener('click', buzz);
 
-    elements.pdfInput.addEventListener("change", async function() {
-      const file = this.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const typedArray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-        let fullText = "";
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          fullText += content.items.map(i => i.str).join(" ") + "\n";
-        }
-        elements.debugInfo.textContent = "First 1000 characters of PDF:\n" + fullText.substring(0, 1000);
-        fullText = fullText.replace(/\s+/g, ' ');
-        const questionBlocks = fullText.split(/(TOSS UP|BONUS)/i);
-        state.questions = [];
-        for (let i = 1; i < questionBlocks.length; i += 2) {
-          const type = questionBlocks[i].trim();
-          const block = questionBlocks[i+1];
-          try {
-            const headerMatch = block.match(/(\d+)\) (PHYSICS|MATH) (Multiple Choice|Short Answer)/i);
-            if (!headerMatch) continue;
-            const number = headerMatch[1];
-            const category = headerMatch[2].toUpperCase();
-            const style = headerMatch[3];
-            const answerPos = block.indexOf("ANSWER:");
-            if (answerPos === -1) continue;
-            let questionBody = block.substring(headerMatch[0].length, answerPos).trim();
-            let answer = block.substring(answerPos + "ANSWER:".length).trim();
-            answer = answer.split(/(?=TOSS UP|BONUS|MIT Science Bowl|Page \d+)/i)[0].trim();
-            if (answer === ')' || answer === ') )') {
-              const answerInQuestion = questionBody.match(/\[([^\]]+)\]|\(([^)]+)\)/);
-              if (answerInQuestion) {
-                answer = answerInQuestion[1] || answerInQuestion[2];
-              } else if (category === 'PHYSICS' && questionBody.includes('factor')) {
-                const factorMatch = questionBody.match(/(\d+(?:\.\d+)?)\s*(?:times|×)/i);
-                answer = factorMatch ? factorMatch[1] : "1/2";
-              } else if (category === 'MATH') {
-                const mathMatch = questionBody.match(/(\d+)\b/);
-                answer = mathMatch ? mathMatch[1] : answer;
-              }
-            }
-            questionBody = questionBody.replace(/MIT Science Bowl.*$/, '')
-              .replace(/Page \d+.*$/, '')
-              .trim();
-            answer = answer.replace(/MIT Science Bowl.*$/, '')
-              .replace(/Page \d+.*$/, '')
-              .trim();
-            if (!questionBody || !answer) continue;
-            if (style === "Multiple Choice") {
-              questionBody = questionBody.replace(/\s([WXYZ]\))/g, "\n$1");
-            }
-            state.questions.push({
-              number,
-              category,
-              style,
-              question: questionBody,
-              answer,
-              type
-            });
-          } catch (e) {
-            console.warn("Error parsing question block:", e, block);
-          }
-        }
-        if (state.questions.length === 0) {
-          alert("No Math/Physics questions found. Please check the debug info.");
-          return;
-        }
-        state.currentIndex = 0;
-        showQuestion();
-        elements.questionBox.style.display = "block";
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    function showQuestion() {
-      const q = state.questions[state.currentIndex];
-      elements.questionTitle.textContent = `${q.type} ${q.number} - ${q.category} ${q.style}`;
-      state.fullQuestionText = q.question.replace(/\n/g, "<br>");
-      startTypewriterEffect();
-    }
-
-    function nextQuestion() {
-      state.currentIndex = (state.currentIndex + 1) % state.questions.length;
-      showQuestion();
-    }
+  document.addEventListener('keydown', (e)=>{
+    if(e.key===' '){ e.preventDefault(); buzz(); }
+    else if(e.key==='n' || e.key==='N'){ next(); }
+    else if(e.key==='p' || e.key==='P'){ prev(); }
+    else if(e.key==='r' || e.key==='R'){ readAloud(); }
+  });
   </script>
 </body>
 </html>
