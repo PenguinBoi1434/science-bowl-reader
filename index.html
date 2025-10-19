@@ -126,7 +126,7 @@
         </div>
       </div>
 
-      <!-- NEW: Numeric typing speed -->
+      <!-- Numeric typing speed -->
       <div class="group">
         <div class="row">
           <label for="typingCPS">Typing speed (chars/sec)</label>
@@ -244,7 +244,6 @@
   /********************
    * Utilities
    ********************/
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const showToast = (msg) => { els.toast.textContent = msg; els.toast.style.display = 'block'; setTimeout(()=> els.toast.style.display='none', 800); };
   const clamp = (n,min,max)=> Math.max(min, Math.min(max,n));
   function shuffleInPlace(arr){ for(let i=arr.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
@@ -296,8 +295,9 @@
       els.metaPages.textContent = String(state.pages);
       els.metaParsed.textContent = String(state.allQuestions.length);
       if (state.allQuestions.length === 0) {
-        alert('No Math/Physics questions parsed. Open DevTools → Console to inspect raw text.');
-        console.warn('Raw extract sample:', state.raw.slice(0, 3000));
+        console.warn('Parsed 0 questions. Showing first 3000 chars of raw extract for regex tuning:');
+        console.warn(state.raw.slice(0, 3000));
+        alert('No Math/Physics questions parsed. Open DevTools → Console for a raw text sample.');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -317,6 +317,7 @@
     const blocks = t.split(/(?=(?:TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b)/gi);
 
     const out = [];
+    let failed = 0;
 
     for(const rawBlock of blocks){
       const block = rawBlock.trim();
@@ -327,23 +328,29 @@
       const typeRaw = typeMatch[1].toUpperCase();
       const type = /BONUS|BO/.test(typeRaw) ? 'BONUS' : 'TOSS UP';
 
-      // Remove the first marker occurrence (doesn't require newline)
+      // Remove only the first marker (works even when marker is on same line as header)
       const rest = block.replace(/^\s*(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b/i,'').trim();
 
-      // Header: number ) Subject -/–/— Style  (MC/SA allowed)
-      const header = rest.match(/(\d+)\)\s*([A-Za-z &]+?)\s*(?:[-–—]\s*)?(Multiple\s*Choice|Short\s*Answer|MC|SA)/i);
-      if(!header) continue;
+      // Header primary pattern
+      let header = rest.match(/(\d+)\)\s*([A-Za-z &]+?)\s*(?:[-–—]\s*)?(Multiple\s*Choice|Short\s*Answer|MC|SA)/i);
+
+      // Fallback: sometimes there’s no dash, or extra punctuation between subject and style
+      if(!header){
+        header = rest.match(/(\d+)\)\s*([A-Za-z &]+?)\s*[,;:]?\s*(Multiple\s*Choice|Short\s*Answer|MC|SA)/i);
+      }
+      if(!header){ failed++; continue; }
+
       const number = header[1];
       const category = normSubject(header[2]);
       const style = normStyle(header[3]);
-      if(!(category==='MATH' || category==='PHYSICS')) continue;
+      if(!(category==='MATH' || category==='PHYSICS')) { continue; }
 
       const headerIndex = rest.indexOf(header[0]);
       const afterHeader = headerIndex >= 0 ? rest.slice(headerIndex + header[0].length).trim() : rest;
 
       // ANSWER may be on same line or subsequent line
       const ansIdx = afterHeader.search(/ANSWER\s*:/i);
-      if(ansIdx === -1) continue;
+      if(ansIdx === -1){ failed++; continue; }
 
       const qBodyRaw = afterHeader.slice(0, ansIdx).trim();
       const ansLine = afterHeader.slice(ansIdx).split(/\r?\n/)[0];
@@ -362,12 +369,15 @@
           .replace(/\s([ABCD])\)/g,'\n$1)');
       }
 
+      // Normalize answers like "(B) something" -> "B) something"
       answer = answer.replace(/^\((.)\)/,'$1)').trim();
 
       out.push({ number, category, style, type, question, answer });
     }
 
     state.allQuestions = out;
+    // Show a brief parse summary in console for debugging
+    console.log(`Parsed ${out.length} questions. Skipped ${failed}.`);
   }
 
   /********************
@@ -385,6 +395,7 @@
     );
     state.idx = 0;
     updatePosChip();
+    els.metaParsed.textContent = String(state.view.length);
   }
 
   function updatePosChip(){
@@ -469,8 +480,7 @@
     const cps = clamp(parseFloat(els.typingCPS.value) || 30, 1, 200);
     els.typingCPS.value = cps;
     typingSpeedMs = Math.round(1000 / cps);
-
-    // Optional: apply immediately by restarting the current render
+    // apply immediately by restarting the current render
     if (state.view.length) render();
   });
 
