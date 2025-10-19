@@ -103,6 +103,16 @@
           <span class="chip">Press <span class="kbd">Space</span> to buzz</span>
         </div>
       </div>
+<div class="group">
+  <label for="speedSelector">Typing speed:</label>
+  <select id="speedSelector">
+    <option value="5">⚡ Very Fast</option>
+    <option value="10">🚀 Fast</option>
+    <option value="16" selected>🕐 Normal</option>
+    <option value="25">🐢 Slow</option>
+    <option value="40">🐌 Very Slow</option>
+  </select>
+</div>
 
       <h2>Shortcuts</h2>
       <div class="group">
@@ -206,6 +216,8 @@
     timeLeft: 5,
     score: 0,
   };
+    let typingSpeed = 16; // default (ms per char)
+
 
   /********************
    * Utilities
@@ -387,7 +399,9 @@
     state.isBuzzed = false;
     els.qText.innerHTML = '<span class="cursor"></span>';
 
-    let i = 0; const speed = 16; // ms per char
+    let i = 0;
+const speed = typingSpeed; // uses dropdown value
+
     state.typewriter = setInterval(()=>{
       if(state.isBuzzed){ clearInterval(state.typewriter); return; }
       if(i >= html.length){
@@ -425,7 +439,11 @@
   els.readBtn.addEventListener('click', readAloud);
   els.stopReadBtn.addEventListener('click', stopSpeech);
   els.rate.addEventListener('input', ()=>{ if(state.speaking) state.speaking.rate = parseFloat(els.rate.value||'1'); });
-
+// Typing speed dropdown
+els.speedSelector = document.getElementById('speedSelector');
+els.speedSelector.addEventListener('change', () => {
+  typingSpeed = parseInt(els.speedSelector.value);
+});
   /********************
    * Buzzer & Timer
    ********************/
