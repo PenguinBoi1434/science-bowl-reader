@@ -280,7 +280,7 @@
     t = t.replace(/[\t ]{2,}/g,' ');
 
     // Looser split: accepts TOSS-UP/TU and BONUS/BO markers
-    const blocks = t.split(/(?=^\s*(?:TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\s*$)/gim);
+    const blocks = t.split(/(?=(?:TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b)/gi);
 
     const out = [];
 
@@ -288,10 +288,10 @@
       const block = rawBlock.trim();
       if(!block) continue;
 
-      const typeMatch = block.match(/^(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\s*$/im);
-      if(!typeMatch) continue;
-      const typeRaw = typeMatch[1].toUpperCase();
-      const type = /BONUS|BO/.test(typeRaw) ? 'BONUS' : 'TOSS UP';
+  const typeMatch = block.match(/^\s*(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b/i);
+  if (!typeMatch) continue;
+  const typeRaw = typeMatch[1].toUpperCase();
+  const type = /BONUS|BO/.test(typeRaw) ? 'BONUS' : 'TOSS UP';
 
       const rest = block.replace(/^(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\s*$/im,'').trim();
 
@@ -307,7 +307,7 @@
       const afterHeader = headerIndex >= 0 ? rest.slice(headerIndex + header[0].length).trim() : rest;
 
       // ANSWER may be on same line or subsequent line
-      const ansIdx = afterHeader.search(/(^|\n)\s*ANSWER\s*:/i);
+      const ansIdx = afterHeader.search(/ANSWER\s*:/i);
       if(ansIdx === -1) continue;
 
       const qBodyRaw = afterHeader.slice(0, ansIdx).trim();
