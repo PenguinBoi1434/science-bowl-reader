@@ -362,12 +362,17 @@
         .replace(/[ \t]{2,}/g,' ')
         .trim();
 
-      // If MC and options still inline, break them onto new lines
-      if (style === 'Multiple Choice' && !(/\n[WXYZ]\)/.test(question)) && !(/\n[ABCD]\)/.test(question)) {
-        question = question
-          .replace(/\s([WXYZ])\)/g,'\n$1)')
-          .replace(/\s([ABCD])\)/g,'\n$1)');
-      }
+      const isMC = style === 'Multiple Choice';
+const hasWXYZ = /\n[WXYZ]\)/.test(question);
+const hasABCD = /\n[ABCD]\)/.test(question);
+
+// Only add newlines for options if neither WXYZ nor ABCD are already on new lines
+if (isMC && !(hasWXYZ || hasABCD)) {
+  question = question
+    .replace(/\s([WXYZ])\)\s?/g, '\n$1) ')
+    .replace(/\s([ABCD])\)\s?/g, '\n$1) ');
+}
+
 
       // Normalize answers like "(B) something" -> "B) something"
       answer = answer.replace(/^\((.)\)/,'$1)').trim();
