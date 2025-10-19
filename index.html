@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SciBowl Reader — Math & Physics (Rewritten, GH Pages‑ready)</title>
+  <title>SciBowl Reader — Math & Physics (GH Pages-ready)</title>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
@@ -11,18 +11,30 @@
     if (typeof pdfjsLib === 'undefined') {
       alert('PDF.js failed to load from CDN. Check your network and that this page is served over HTTPS.');
     } else {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     }
   </script>
   <style>
     :root{ --bg:#0b1020; --panel:#121a34; --muted:#9fb0ff; --text:#eef1ff; --accent:#7aa3ff; --good:#30d158; --bad:#ff453a; --chip:#1a2652; }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{ margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji"; background:radial-gradient(1200px 800px at 20% -10%, #14214d 0%, #0b1020 60%); color:var(--text); display:flex; flex-direction:column; }
-    header{ display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #1c2754; backdrop-filter:saturate(150%) blur(3px); position:sticky; top:0; z-index:10; background:linear-gradient(to bottom, rgba(9,14,31,0.8), rgba(9,14,31,0.4)); }
+    body{
+      margin:0;
+      font-family:system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background:radial-gradient(1200px 800px at 20% -10%, #14214d 0%, #0b1020 60%);
+      color:var(--text); display:flex; flex-direction:column;
+    }
+    header{
+      display:flex; align-items:center; gap:14px; padding:18px 22px;
+      border-bottom:1px solid #1c2754; backdrop-filter:saturate(150%) blur(3px);
+      position:sticky; top:0; z-index:10;
+      background:linear-gradient(to bottom, rgba(9,14,31,0.8), rgba(9,14,31,0.4));
+    }
     header h1{margin:0; font-size:20px; font-weight:700; letter-spacing:.2px}
     header .subtitle{opacity:.7; font-size:13px}
     main{max-width:1100px; width:100%; margin:0 auto; padding:18px; display:grid; grid-template-columns: 320px 1fr; gap:18px; flex:1}
+
     .panel{background:var(--panel); border:1px solid #1b2550; border-radius:16px; padding:16px; box-shadow:0 5px 30px rgba(14,25,79,.25) inset, 0 10px 30px rgba(0,0,0,.25)}
     .panel h2{margin:2px 0 12px; font-size:15px; opacity:.9}
     .panel .group{display:flex; flex-direction:column; gap:10px; margin:10px 0 14px}
@@ -32,10 +44,20 @@
     .chip{background:var(--chip); border:1px solid #223067; padding:6px 10px; border-radius:999px; font-size:12px}
     .switch{display:inline-flex; align-items:center; gap:6px}
     .switch input{accent-color:var(--accent)}
-    .btn{appearance:none; border:none; padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; background:#263a86; color:#e7ecff; box-shadow:0 6px 16px rgba(84,114,255,.25); transition:.15s transform ease}
-    .btn:hover{transform:translateY(-1px)}
-    .btn.secondary{background:#1d264f}
-    .btn.ghost{background:transparent; border:1px solid #2b3e88}
+
+    /* THEMED BUTTONS */
+    .btn{
+      appearance:none; border:none; padding:10px 14px; border-radius:12px;
+      font-weight:600; cursor:pointer;
+      background:var(--accent); color:#0b1020;
+      box-shadow:0 6px 16px rgba(122,163,255,.35);
+      transition:.15s transform ease, box-shadow .15s ease;
+    }
+    .btn:hover{transform:translateY(-1px); box-shadow:0 10px 22px rgba(122,163,255,.45)}
+    .btn:focus-visible{outline:2px solid #aecdff; outline-offset:2px}
+    .btn.secondary{background:#1b2550; color:#e7ecff}
+    .btn.ghost{background:transparent; border:1px solid #2b3e88; color:#e7ecff}
+
     .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 10px; font-size:13px}
     .kv div:nth-child(odd){opacity:.75}
     .stage{position:relative; background:#0d1431; border:1px solid #1b2550; border-radius:18px; padding:18px; min-height:420px; box-shadow:0 20px 60px rgba(6,12,48,.45) inset, 0 20px 60px rgba(0,0,0,.35)}
@@ -103,16 +125,15 @@
           <span class="chip">Press <span class="kbd">Space</span> to buzz</span>
         </div>
       </div>
-<div class="group">
-  <label for="speedSelector">Typing speed:</label>
-  <select id="speedSelector">
-    <option value="5">⚡ Very Fast</option>
-    <option value="10">🚀 Fast</option>
-    <option value="16" selected>🕐 Normal</option>
-    <option value="25">🐢 Slow</option>
-    <option value="40">🐌 Very Slow</option>
-  </select>
-</div>
+
+      <!-- NEW: Numeric typing speed -->
+      <div class="group">
+        <div class="row">
+          <label for="typingCPS">Typing speed (chars/sec)</label>
+          <input id="typingCPS" type="number" min="1" max="200" step="1" value="30"
+                 style="width:110px; padding:8px 10px; border-radius:10px; border:1px solid #2b3e88; background:#0e1738; color:#eef1ff" />
+        </div>
+      </div>
 
       <h2>Shortcuts</h2>
       <div class="group">
@@ -216,8 +237,9 @@
     timeLeft: 5,
     score: 0,
   };
-    let typingSpeed = 16; // default (ms per char)
 
+  // Typing speed (derived from chars/sec input). Default 30 cps => ~33 ms/char
+  let typingSpeedMs = Math.round(1000 / 30);
 
   /********************
    * Utilities
@@ -291,7 +313,7 @@
     t = unifyMarkers(t);
     t = t.replace(/[\t ]{2,}/g,' ');
 
-    // Looser split: accepts TOSS-UP/TU and BONUS/BO markers
+    // Looser split: markers can be mid-line
     const blocks = t.split(/(?=(?:TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b)/gi);
 
     const out = [];
@@ -300,14 +322,15 @@
       const block = rawBlock.trim();
       if(!block) continue;
 
-  const typeMatch = block.match(/^\s*(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b/i);
-  if (!typeMatch) continue;
-  const typeRaw = typeMatch[1].toUpperCase();
-  const type = /BONUS|BO/.test(typeRaw) ? 'BONUS' : 'TOSS UP';
+      const typeMatch = block.match(/^\s*(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b/i);
+      if (!typeMatch) continue;
+      const typeRaw = typeMatch[1].toUpperCase();
+      const type = /BONUS|BO/.test(typeRaw) ? 'BONUS' : 'TOSS UP';
 
-      const rest = block.replace(/^(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\s*$/im,'').trim();
+      // Remove the first marker occurrence (doesn't require newline)
+      const rest = block.replace(/^\s*(TOSS[-\s]?UP|TOSSUP|TU|BONUS|BO)\b/i,'').trim();
 
-      // Accept hyphen, en dash, em dash, or even missing dash
+      // Header: number ) Subject -/–/— Style  (MC/SA allowed)
       const header = rest.match(/(\d+)\)\s*([A-Za-z &]+?)\s*(?:[-–—]\s*)?(Multiple\s*Choice|Short\s*Answer|MC|SA)/i);
       if(!header) continue;
       const number = header[1];
@@ -332,8 +355,8 @@
         .replace(/[ \t]{2,}/g,' ')
         .trim();
 
-      // Only add newlines for options if neither WXYZ nor ABCD are already on newlines
-      if (style === 'Multiple Choice' && !(/\n[WXYZ]\)/.test(question)) && !(/\n[ABCD]\)/.test(question))) {
+      // If MC and options still inline, break them onto new lines
+      if (style === 'Multiple Choice' && !(/\n[WXYZ]\)/.test(question)) && !(/\n[ABCD]\)/.test(question)) {
         question = question
           .replace(/\s([WXYZ])\)/g,'\n$1)')
           .replace(/\s([ABCD])\)/g,'\n$1)');
@@ -400,7 +423,7 @@
     els.qText.innerHTML = '<span class="cursor"></span>';
 
     let i = 0;
-const speed = typingSpeed; // uses dropdown value
+    const speed = typingSpeedMs; // ms / char from numeric control
 
     state.typewriter = setInterval(()=>{
       if(state.isBuzzed){ clearInterval(state.typewriter); return; }
@@ -439,11 +462,18 @@ const speed = typingSpeed; // uses dropdown value
   els.readBtn.addEventListener('click', readAloud);
   els.stopReadBtn.addEventListener('click', stopSpeech);
   els.rate.addEventListener('input', ()=>{ if(state.speaking) state.speaking.rate = parseFloat(els.rate.value||'1'); });
-// Typing speed dropdown
-els.speedSelector = document.getElementById('speedSelector');
-els.speedSelector.addEventListener('change', () => {
-  typingSpeed = parseInt(els.speedSelector.value);
-});
+
+  // Numeric typing speed (chars/sec) -> ms/char
+  els.typingCPS = document.getElementById('typingCPS');
+  els.typingCPS.addEventListener('input', ()=>{
+    const cps = clamp(parseFloat(els.typingCPS.value) || 30, 1, 200);
+    els.typingCPS.value = cps;
+    typingSpeedMs = Math.round(1000 / cps);
+
+    // Optional: apply immediately by restarting the current render
+    if (state.view.length) render();
+  });
+
   /********************
    * Buzzer & Timer
    ********************/
@@ -483,7 +513,8 @@ els.speedSelector.addEventListener('change', () => {
       const letter = (correct.match(/^([WXYZABCD])\)/i)||[])[1];
       const uL = user.toUpperCase().replace(/[^A-Z]/g,'');
       const cL = letter ? letter.toUpperCase() : null;
-      verdict = cL ? (uL===cL || user.trim().toUpperCase()===correct.toUpperCase()) : (user.trim().toUpperCase()===correct.toUpperCase());
+      verdict = cL ? (uL===cL || user.trim().toUpperCase()===correct.toUpperCase())
+                   : (user.trim().toUpperCase()===correct.toUpperCase());
     } else {
       verdict = user.trim().toUpperCase()===correct.toUpperCase();
     }
